@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Golden outer bracket bezel -->
+    <path
+        android:pathData="M 22 22 H 86 A 8 8 0 0 1 94 30 V 78 A 8 8 0 0 1 86 86 H 22 A 8 8 0 0 1 14 78 V 30 A 8 8 0 0 1 22 22 Z"
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="3.5"
+        android:fillColor="#15000000" />
+
+    <!-- Innermost thin gold inset border -->
+    <path
+        android:pathData="M 25 25 H 83 V 83 H 25 Z"
+        android:strokeColor="#44D4AF37"
+        android:strokeWidth="1.0" />
+
+    <!-- 3x3 Grid Lines (Neo-Blue style) -->
+    <path
+        android:pathData="M 44.3 25 V 83 M 63.6 25 V 83 M 25 44.3 H 83 M 25 63.6 H 83"
+        android:strokeColor="#2196F3"
+        android:strokeWidth="1.8" />
+
+    <!-- Brain Core Graphic in the center cell ([44.3, 63.6] x [44.3, 63.6]) -->
+    <!-- Left hemisphere of brain -->
+    <path
+        android:pathData="M52.5,47 C50.5,45 47,45 45.5,47.5 C44.5,49 44.5,52 46.5,53.5 C45,55 45.5,57.5 47.5,58.5 C49,59 51,58 52.5,56"
+        android:strokeColor="#FF4081"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+        
+    <!-- Right hemisphere of brain -->
+    <path
+        android:pathData="M55.5,47 C57.5,45 61,45 62.5,47.5 C63.5,49 63.5,52 61.5,53.5 C63,55 62.5,57.5 60.5,58.5 C59,59 57,58 55.5,56"
+        android:strokeColor="#FF4081"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Connecting cerebrum stem -->
+    <path
+        android:pathData="M54,54 V58 C54,59.5 53,60.5 51.5,60.5"
+        android:strokeColor="#FF4081"
+        android:strokeWidth="2.0"
+        android:strokeLineCap="round" />
+
+    <!-- Sub-grid number landmarks (Flat design representations of 5, 9, 3, 1, 7) -->
+    <!-- Top Left Cell: "5" (Yellow-Gold) -->
+    <path
+        android:pathData="M 31 31 H 37 V 34 H 31 V 38 H 37"
+        android:strokeColor="#FFB74D"
+        android:strokeWidth="2.0"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+
+    <!-- Top Right Cell: "9" (Light Blue) -->
+    <path
+        android:pathData="M 77 31 H 71 V 35 H 77 V 39 H 71"
+        android:strokeColor="#4FC3F7"
+        android:strokeWidth="2.0"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+    <path
+        android:pathData="M 77 31 V 35"
+        android:strokeColor="#4FC3F7"
+        android:strokeWidth="2.0"/>
+
+    <!-- Bottom Left Cell: "1" (Light blue) -->
+    <path
+        android:pathData="M 33 69 V 77 M 31 69 H 33"
+        android:strokeColor="#2196F3"
+        android:strokeWidth="2.0"
+        android:strokeLineCap="round" />
+
+    <!-- Bottom Middle Cell: "7" (Gold) -->
+    <path
+        android:pathData="M 50 69 H 56 L 51 77"
+        android:strokeColor="#FFD54F"
+        android:strokeWidth="2.0"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Bottom Right Cell: "3" (Yellow-Gold) -->
+    <path
+        android:pathData="M 71 69 H 77 L 74 73 H 77 V 77 H 71"
+        android:strokeColor="#FFB74D"
+        android:strokeWidth="2.0"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+</vector>

@@ -1,0 +1,1011 @@
+package com.example.ui.components
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.data.LeaderboardPlayerEntity
+import com.example.data.UserProfileEntity
+import com.example.data.network.GlobalFastestPlayer
+import com.example.ui.MatchResult
+import com.example.ui.MatchmakingState
+
+@Composable
+fun LeaderboardScreen(
+    players: List<LeaderboardPlayerEntity>,
+    selectedRegion: String,
+    onRegionSelected: (String) -> Unit,
+    searchState: MatchmakingState,
+    recentMatchResult: MatchResult?,
+    onEnterArena: () -> Unit,
+    onDismissMatch: () -> Unit,
+    userProfile: UserProfileEntity?,
+    fastestTimes: List<GlobalFastestPlayer> = emptyList(),
+    isRefreshingFastest: Boolean = false,
+    onRefreshFastest: () -> Unit = {},
+    onSendNudge: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    var selectedSubTab by remember { mutableStateOf(0) } // 0: Points Ladder, 1: Fastest Times (Firestore)
+
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            
+            // 1. Competitive Arena Card (Banner on top)
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+                    .border(
+                        1.dp,
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                        RoundedCornerShape(16.dp)
+                    )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "MULTIPLAYER ARENA",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Challenge active international Sudoku grandmasters in real-time speed solving. Buy in costs 5 Gems. Winning awards up to +600 PlayGold points & +100 Competitive Rating point increments!",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 16.sp
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Button(
+                        onClick = onEnterArena,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.tertiary,
+                            contentColor = MaterialTheme.colorScheme.onTertiary
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("enter_arena_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = "Arena Match Icon",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "BUY IN: 5 GEMS & SOLVE LIVE",
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                }
+            }
+
+            // Dynamic Sub-Tab Selector Card
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                listOf("🏆 RATING POINTS", "⚡ FASTEST TIMES").forEachIndexed { index, title ->
+                    val isSelected = selectedSubTab == index
+                    val tabBgColor by animateColorAsState(
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
+                    )
+                    val tabTextColor by animateColorAsState(
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(tabBgColor)
+                            .clickable { selectedSubTab = index }
+                            .padding(vertical = 10.dp)
+                            .testTag("leaderboard_sub_tab_$index"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = tabTextColor
+                        )
+                    }
+                }
+            }
+
+            if (selectedSubTab == 0) {
+                // 2. Regional Filters Row
+                val regions = listOf("Global", "Americas", "Europe", "Asia-Pacific", "Africa")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                regions.forEach { region ->
+                    val isSel = selectedRegion == region
+                    val chipColor by animateColorAsState(
+                        targetValue = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    val contentColor by animateColorAsState(
+                        targetValue = if (isSel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(50.dp))
+                            .background(chipColor)
+                            .clickable { onRegionSelected(region) }
+                            .padding(vertical = 8.dp)
+                            .testTag("region_chip_$region"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = when(region) {
+                                "Americas" -> "🌎 Am"
+                                "Europe" -> "🇪🇺 Eu"
+                                "Asia-Pacific" -> "🇯🇵 Asia"
+                                "Africa" -> "🇳🇬 Afr"
+                                else -> "🌐 Global"
+                            },
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = contentColor
+                        )
+                    }
+                }
+            }
+
+            // 3. User Current Standing Header
+            if (userProfile != null) {
+                val rating = 2000 + (userProfile.xp / 10)
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF4CAF50)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "User avatar",
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "${userProfile.username} (YOU)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Country: ${userProfile.countryFlag} ${userProfile.countryName} (Region: ${userProfile.region})",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "$rating RP",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "Level ${userProfile.level}",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 4. Rankings List
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                contentPadding = PaddingValues(bottom = 80.dp)
+            ) {
+                itemsIndexed(players) { idx, player ->
+                    val isUser = player.isCurrentUser
+                    val playerBg = if (isUser) {
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    }
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                1.dp,
+                                if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
+                                RoundedCornerShape(12.dp)
+                            ),
+                        colors = CardDefaults.cardColors(containerColor = playerBg),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Rank number
+                            Text(
+                                text = player.rank.toString(),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = when (player.rank) {
+                                    1 -> Color(0xFFFFD700) // Gold
+                                    2 -> Color(0xFFC0C0C0) // Silver
+                                    3 -> Color(0xFFCD7F32) // Bronze
+                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                                modifier = Modifier.width(28.dp),
+                                textAlign = TextAlign.Center
+                            )
+
+                            // Avatar Circle
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(if (player.avatarColorSeed != 0) player.avatarColorSeed.toLong() else 0xFF607D8BL)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = player.username.take(1).uppercase(),
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    fontSize = 12.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            // Name & region
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = player.username,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = if (isUser) FontWeight.ExtraBold else FontWeight.SemiBold
+                                    )
+                                    if (isUser) {
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.primary,
+                                            shape = RoundedCornerShape(4.dp),
+                                            modifier = Modifier.padding(2.dp)
+                                        ) {
+                                            Text(
+                                                text = "YOU",
+                                                color = MaterialTheme.colorScheme.onPrimary,
+                                                fontSize = 7.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                                Text(
+                                    text = if (isUser && userProfile != null) {
+                                        "${userProfile.countryFlag} ${userProfile.countryName} (${userProfile.region})"
+                                    } else {
+                                        when (player.region) {
+                                            "Americas" -> "🌎 Americas"
+                                            "Europe" -> "🇪🇺 Europe"
+                                            "Asia-Pacific" -> "🇯🇵 Asia-Pacific"
+                                            "Africa" -> "🇳🇬 Africa"
+                                            else -> "🌐 Global"
+                                        }
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 11.sp
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = "Solve Speed Icon",
+                                        tint = Color(0xFFFFB300),
+                                        modifier = Modifier.size(10.dp)
+                                    )
+                                    val (easyTime, medTime) = when (player.username) {
+                                        "Yuki_Tokyo" -> "1m 58s" to "3m 04s"
+                                        "Sven_Berlin" -> "2m 14s" to "3m 22s"
+                                        "Alex_NYC" -> "2m 32s" to "3m 48s"
+                                        "Amara_Lagos" -> "2m 45s" to "4m 10s"
+                                        "Chloe_Paris" -> "2m 58s" to "4m 25s"
+                                        "Mateo_Rio" -> "3m 10s" to "4m 50s"
+                                        "Priya_Mumbai" -> "3m 22s" to "5m 05s"
+                                        "Fatima_Cairo" -> "3m 40s" to "5m 28s"
+                                        "Li_Shanghai" -> "3m 52s" to "5m 45s"
+                                        "Hans_Vienna" -> "4m 05s" to "6m 12s"
+                                        else -> {
+                                            val minutesEasy = 2L + ((userProfile?.level ?: 1) % 3)
+                                            val secondsEasy = (30 + ((userProfile?.xp ?: 0) % 30)) % 60
+                                            val minutesMed = 4L + ((userProfile?.level ?: 1) % 4)
+                                            val secondsMed = (15 + ((userProfile?.xp ?: 0) % 45)) % 60
+                                            String.format("%01dm %02ds", minutesEasy, secondsEasy) to String.format("%01dm %02ds", minutesMed, secondsMed)
+                                        }
+                                    }
+                                    Text(
+                                        text = "Best: Easy $easyTime | Med $medTime",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+
+                            // Rating points
+                            Text(
+                                text = "${player.points} RP",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+            }
+        } else {
+                // --- Brand-new Global Real-time Firestore Fastest Solver Times Tab ---
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "⚡ REAL-TIME SPEED LEADERBOARD",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "Global Top 10 fastest verified puzzle solves",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    // Refresh Button
+                    IconButton(
+                        onClick = onRefreshFastest,
+                        modifier = Modifier
+                            .background(
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                                shape = CircleShape
+                            )
+                            .testTag("refresh_fastest_times_btn")
+                    ) {
+                        if (isRefreshingFastest) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.5.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        } else {
+                            Text(
+                                text = "🔄",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 80.dp)
+                ) {
+                    if (fastestTimes.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(40.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No records found on Firestore yet. Solve a puzzle to log the first record!",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    } else {
+                        itemsIndexed(fastestTimes) { idx, player ->
+                            val isUser = userProfile != null && player.username == userProfile.username
+                            val isTop3 = idx < 3
+                            val cardBg = if (isUser) {
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.40f)
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            }
+
+                            val borderBrush = if (isUser) {
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.secondary
+                                    )
+                                )
+                            } else if (isTop3) {
+                                val goldColor = Color(0xFFFFD700)
+                                Brush.horizontalGradient(
+                                    colors = listOf(goldColor.copy(alpha = 0.7f), goldColor.copy(alpha = 0.15f))
+                                )
+                            } else {
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                                        Color.Transparent
+                                    )
+                                )
+                            }
+
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(
+                                        width = if (isUser || isTop3) 2.dp else 1.dp,
+                                        brush = borderBrush,
+                                        shape = RoundedCornerShape(14.dp)
+                                    )
+                                    .testTag("fastest_rank_$idx"),
+                                colors = CardDefaults.cardColors(containerColor = cardBg),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Rank Medal or Number
+                                    Box(
+                                        modifier = Modifier.width(36.dp),
+                                        contentAlignment = Alignment.CenterStart
+                                    ) {
+                                        Text(
+                                            text = when (idx + 1) {
+                                                1 -> "🥇"
+                                                2 -> "🥈"
+                                                3 -> "🥉"
+                                                else -> "  #${idx + 1}"
+                                            },
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+
+                                    // Country flag emoji and User details
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(
+                                                text = player.countryFlag,
+                                                fontSize = 16.sp
+                                            )
+                                            Text(
+                                                text = player.username,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+
+                                            // "YOU" tag
+                                            if (isUser) {
+                                                Surface(
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    shape = RoundedCornerShape(4.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "YOU",
+                                                        color = MaterialTheme.colorScheme.onPrimary,
+                                                        fontSize = 7.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        ) {
+                                            Text(
+                                                text = "${player.countryName} (${player.region})",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            // Solve timestamp date representation
+                                            Text(
+                                                text = "• ${formatRelativeDate(player.timestamp)}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontSize = 10.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                            )
+                                        }
+                                    }
+
+                                    // Time elapsed & difficulty tag column
+                                    Column(
+                                        horizontalAlignment = Alignment.End,
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = formatTime(player.timeElapsedSeconds),
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.Black,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+
+                                        // Difficulty Label colored chip
+                                        val diffUpper = player.difficulty.uppercase()
+                                        Surface(
+                                            color = when {
+                                                diffUpper.contains("EXPERT") -> Color(0xFFE91E63).copy(alpha = 0.15f)
+                                                diffUpper.contains("ARENA") -> Color(0xFF00E676).copy(alpha = 0.15f)
+                                                diffUpper.contains("HARD") -> Color(0xFF29B6F6).copy(alpha = 0.15f)
+                                                diffUpper.contains("MEDIUM") -> Color(0xFFFFB74D).copy(alpha = 0.15f)
+                                                else -> Color(0xFF66BB6A).copy(alpha = 0.15f)
+                                            },
+                                            contentColor = when {
+                                                diffUpper.contains("EXPERT") -> Color(0xFFFF4081)
+                                                diffUpper.contains("ARENA") -> Color(0xFF00C853)
+                                                diffUpper.contains("HARD") -> Color(0xFF0288D1)
+                                                diffUpper.contains("MEDIUM") -> Color(0xFFF57C00)
+                                                else -> Color(0xFF388E3C)
+                                            },
+                                            shape = RoundedCornerShape(6.dp)
+                                        ) {
+                                            Text(
+                                                text = player.difficulty,
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. Fullscreen Matchmaking Overlay
+        AnimatedVisibility(
+            visible = searchState != MatchmakingState.Idle,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.85f))
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        when (searchState) {
+                            MatchmakingState.Idle -> {}
+                            MatchmakingState.Searching -> {
+                                Text(
+                                    text = "CONNECTING SIMULATOR",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Searching matchmaking lobbies details...",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(24.dp))
+                                CircularProgressIndicator(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(56.dp)
+                                )
+                                Spacer(modifier = Modifier.height(24.dp))
+                                Text(
+                                    text = "Contacting master nodes on MSB Creative Studios proxy hub...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+
+                            is MatchmakingState.FoundOpponent -> {
+                                Text(
+                                    text = "MATCH SECURED!",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF4CAF50),
+                                    letterSpacing = 1.sp
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Opponent: ${searchState.opponentFlag} ${searchState.opponentName}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Country: ${searchState.opponentCountry} (Region: ${searchState.opponentRegion}) | Latency: ${searchState.latencyMs}ms",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(20.dp))
+                                LinearProgressIndicator(
+                                    modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp))
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "Injecting unique Sudoku conflict puzzles...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+
+                            is MatchmakingState.SolvingConflict -> {
+                                Text(
+                                    text = "SUDOKU MULTIPLAYER RIVALRY",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Speed Solving Board Active",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                // Ticking clock showing seconds remaining under different speeds
+                                Surface(
+                                    color = if (searchState.secondsLeft < 15) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer,
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Lock,
+                                            contentDescription = "Active Clock",
+                                            tint = if (searchState.secondsLeft < 15) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = "TIME SECONDS LEFT: ${searchState.secondsLeft}s",
+                                            fontWeight = FontWeight.Black,
+                                            color = if (searchState.secondsLeft < 15) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+                                            style = MaterialTheme.typography.labelLarge
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                // Progress bars
+                                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Column {
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text("You (${userProfile?.countryFlag ?: "🇺🇸"} ${userProfile?.username ?: "MSB"})", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Text("${searchState.progressSelf}%", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                        LinearProgressIndicator(
+                                            progress = { searchState.progressSelf / 100f },
+                                            modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+
+                                    Column {
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text("Opponent", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Text("${searchState.progressOpponent}%", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                        LinearProgressIndicator(
+                                            progress = { searchState.progressOpponent / 100f },
+                                            modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
+                                            color = Color(0xFFE91E63)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                // Realtime Nudge activity feedback
+                                if (searchState.lastNudgeMessage.isNotEmpty()) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Person,
+                                                contentDescription = "Nudge Feed",
+                                                tint = MaterialTheme.colorScheme.secondary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Text(
+                                                text = searchState.lastNudgeMessage,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.SemiBold,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                }
+
+                                // Interactive Nudge CTA Button using the Star / Leaderboard Logo!
+                                Button(
+                                    onClick = onSendNudge,
+                                    enabled = searchState.nudgeCountLeft > 0,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.secondary,
+                                        contentColor = MaterialTheme.colorScheme.onSecondary
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(48.dp)
+                                        .testTag("pvp_nudge_action_btn"),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Star, // Leaderboard logo used on the nudge trigger
+                                        contentDescription = "Leaderboard Nudge Logo",
+                                        tint = Color(0xFFFFB300),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "PvP SPEED NUDGE (${searchState.nudgeCountLeft}/3)",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Send a speed barrier nudge to subtract 15% from opponent progress! (Saves your puzzle solve rate)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                )
+                            }
+
+                            MatchmakingState.MatchFinished -> {
+                                recentMatchResult?.let { result ->
+                                    val titleText = if (result.isWon) "VICTORY!" else "DEFEAT"
+                                    val titleColor = if (result.isWon) Color(0xFF4CAF50) else Color(0xFFE91E63)
+
+                                    Text(
+                                        text = titleText,
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        fontWeight = FontWeight.Black,
+                                        color = titleColor,
+                                        letterSpacing = 1.5.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    Text(
+                                        text = "Solve Time Comparison:",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = "Your Time: ${result.solveTimeSelf}s | Opponent (${result.opponentName}): ${result.solveTimeOpponent}s",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Card(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(12.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                text = "rewards claimed:",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
+                                                text = "PlayGold awarded: +${result.playGoldAwarded} PGP",
+                                                color = Color(0xFFFFC107),
+                                                fontWeight = FontWeight.ExtraBold,
+                                                fontSize = 15.sp
+                                            )
+                                            Text(
+                                                text = "Competitive Rating: ${if (result.pointsDelta >= 0) "+" else ""}${result.pointsDelta} RP",
+                                                color = MaterialTheme.colorScheme.primary,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
+                                                text = "Bonus gems: +${result.gemsAwarded}",
+                                                color = Color(0xFF00BCD4),
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(24.dp))
+                                    Button(
+                                        onClick = onDismissMatch,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text("RETURN TO LOBBY", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+
+                            is MatchmakingState.Error -> {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = "Error Locking",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "CANNOT JOIN MATCHMAKING",
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = (searchState as MatchmakingState.Error).message,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(24.dp))
+                                Button(
+                                    onClick = onDismissMatch,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("DISMISS")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatTime(seconds: Long): String {
+    val m = seconds / 60
+    val s = seconds % 60
+    return if (m > 0) "${m}m ${s}s" else "${s}s"
+}
+
+private fun formatRelativeDate(timestamp: Long): String {
+    val diff = System.currentTimeMillis() - timestamp
+    return when {
+        diff < 60000L -> "just now"
+        diff < 3600000L -> "${diff / 60000L}m ago"
+        diff < 86400000L -> "${diff / 3600000L}h ago"
+        else -> java.text.SimpleDateFormat("MMM dd", java.util.Locale.getDefault()).format(java.util.Date(timestamp))
+    }
+}
+

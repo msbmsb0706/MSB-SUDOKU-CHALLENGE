@@ -1,0 +1,6 @@
+{
+  "name": "MSB Sudoku Challenge",
+  "description": "Premium Sudoku experience with real-time global leaderboards and Google Play reward dashboard. Powered by MSB Creative Studios.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
