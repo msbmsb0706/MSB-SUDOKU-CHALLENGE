@@ -43,17 +43,24 @@ fun LeaderboardScreen(
     onRegionSelected: (String) -> Unit,
     searchState: MatchmakingState,
     recentMatchResult: MatchResult?,
-    onEnterArena: (String) -> Unit,
+    onEnterArena: (String, Int) -> Unit,
     onDismissMatch: () -> Unit,
     userProfile: UserProfileEntity?,
     fastestTimes: List<GlobalFastestPlayer> = emptyList(),
     isRefreshingFastest: Boolean = false,
     onRefreshFastest: () -> Unit = {},
     onSendNudge: () -> Unit = {},
+    onSolveBoost: (Int) -> Unit = {},
+    onPvpCellSelected: (Int, Int) -> Unit = { _, _ -> },
+    onPvpNumberEntered: (Int) -> Unit = { _ -> },
+    onPvpClearCell: () -> Unit = {},
+    onSendSocialNudge: (String) -> Unit = {},
+    onClaimPvpCertificate: (Int, String, Long, Double, Double, Double) -> Unit = { _, _, _, _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
     var selectedSubTab by remember { mutableStateOf(0) } // 0: Points Ladder, 1: Fastest Times (Firestore)
     var activeArenaMode by remember { mutableStateOf("One-to-One") } // "One-to-One" vs "Group Challenge" vs "Tournament Cup"
+    var pvpGridSizeOption by remember { mutableIntStateOf(9) } // Default 9x9, options 4x4 or 9x9
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -137,6 +144,47 @@ fun LeaderboardScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
+                    // Board Grid Size Option
+                    Text(
+                        text = "Match Board Grid Size Option:",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(9, 4).forEach { size ->
+                            val isSel = pvpGridSizeOption == size
+                            val borderCol = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                            val bgCol = if (isSel) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(bgCol)
+                                    .border(1.5.dp, borderCol, RoundedCornerShape(8.dp))
+                                    .clickable { pvpGridSizeOption = size }
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (size == 9) "🧩 Classic 9x9 Grid" else "👶 Kids 4x4 Grid",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
                     // Dynamic details card based on selected mode
                     Surface(
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
@@ -186,7 +234,7 @@ fun LeaderboardScreen(
                     }
 
                     Button(
-                        onClick = { onEnterArena(activeArenaMode) },
+                        onClick = { onEnterArena(activeArenaMode, pvpGridSizeOption) },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.tertiary,
                             contentColor = MaterialTheme.colorScheme.onTertiary
@@ -850,50 +898,151 @@ fun LeaderboardScreen(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Speed Solving Board Active",
+                                    text = "Speed Solving Board Active (${searchState.pvpGridSize}x${searchState.pvpGridSize})",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold
                                 )
-                                Spacer(modifier = Modifier.height(10.dp))
+                                Spacer(modifier = Modifier.height(4.dp))
 
                                 // Ticking clock showing seconds remaining under different speeds
                                 Surface(
-                                    color = if (searchState.secondsLeft < 15) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer,
+                                    color = if (searchState.secondsLeft < 30) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer,
                                     shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Lock,
                                             contentDescription = "Active Clock",
-                                            tint = if (searchState.secondsLeft < 15) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(16.dp)
+                                            tint = if (searchState.secondsLeft < 30) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(14.dp)
                                         )
                                         Text(
                                             text = "TIME SECONDS LEFT: ${searchState.secondsLeft}s",
                                             fontWeight = FontWeight.Black,
-                                            color = if (searchState.secondsLeft < 15) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
-                                            style = MaterialTheme.typography.labelLarge
+                                            color = if (searchState.secondsLeft < 30) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+                                            fontSize = 11.sp
                                         )
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(16.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
 
-                                // Progress bars
-                                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                // Dynamic interactive Sudoku board
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f, fill = false)
+                                ) {
+                                    SudokuGrid(
+                                        grid = searchState.pvpGrid,
+                                        selectedCell = searchState.pvpSelectedCell,
+                                        onCellSelected = { r, c -> onPvpCellSelected(r, c) },
+                                        isPaused = false,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .aspectRatio(1f)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                // Quick digits selection pad + clear button
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
+                                ) {
+                                    val size = searchState.pvpGridSize
+                                    for (num in 1..size) {
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .aspectRatio(1f)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                                .clickable { onPvpNumberEntered(num) },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = num.toString(),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Black,
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                            )
+                                        }
+                                    }
+                                    // Clear button
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1.3f)
+                                            .aspectRatio(1f)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(MaterialTheme.colorScheme.errorContainer)
+                                            .clickable { onPvpClearCell() },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "CLEAR",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 8.sp,
+                                            color = MaterialTheme.colorScheme.onErrorContainer
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                // Real-time chat logs
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(72.dp)
+                                        .background(Color.Black.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                                        .padding(6.dp)
+                                ) {
+                                    Text(
+                                        text = "LIVE RIVALRY ACTIVITY LOG:",
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Box(modifier = Modifier.fillMaxSize()) {
+                                        androidx.compose.foundation.lazy.LazyColumn(
+                                            modifier = Modifier.fillMaxSize(),
+                                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                            itemsIndexed(searchState.liveChatLog) { index, chat ->
+                                                Text(
+                                                    text = chat,
+                                                    fontSize = 8.5.sp,
+                                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                                    color = if (chat.contains("System:")) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurface,
+                                                    lineHeight = 10.sp
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // Progress bars comparison
+                                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Column {
                                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text("You (${userProfile?.countryFlag ?: "🇺🇸"} ${userProfile?.username ?: "MSB"})", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                            Text("${searchState.progressSelf}%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                            Text("You (${userProfile?.countryFlag ?: "🇺🇸"} ${userProfile?.username ?: "MSB"})", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                            Text("${searchState.progressSelf}%", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                         }
                                         LinearProgressIndicator(
                                             progress = { searchState.progressSelf / 100f },
-                                            modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
+                                            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
                                             color = Color(0xFFD4AF37) // Premium gold for user
                                         )
                                     }
@@ -901,17 +1050,17 @@ fun LeaderboardScreen(
                                     if (searchState.opponentProgresses.isEmpty()) {
                                         Column {
                                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                Text("Opponent", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                                Text("${searchState.progressOpponent}%", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                Text("Opponent", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                Text("${searchState.progressOpponent}%", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                             }
                                             LinearProgressIndicator(
                                                 progress = { searchState.progressOpponent / 100f },
-                                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                                                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                                                 color = Color(0xFFE91E63)
                                             )
                                         }
                                     } else {
-                                        for ((name, progress) in searchState.opponentProgresses) {
+                                        searchState.opponentProgresses.forEach { (name, progress) ->
                                             val flag = when {
                                                 name.contains("Tokyo") || name.contains("Yuki") -> "🇯🇵"
                                                 name.contains("Prague") || name.contains("Max") -> "🇨🇿"
@@ -924,12 +1073,12 @@ fun LeaderboardScreen(
                                             }
                                             Column {
                                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                    Text("$flag $name", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                                                    Text("$progress%", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                    Text("$flag $name", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                                                    Text("$progress%", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                                 }
                                                 LinearProgressIndicator(
                                                     progress = { progress / 100f },
-                                                    modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                                                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                                                     color = when {
                                                         name.contains("Tokyo") -> Color(0xFF2196F3)
                                                         name.contains("Berlin") -> Color(0xFFFF9800)
@@ -942,74 +1091,112 @@ fun LeaderboardScreen(
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(16.dp))
+                                Spacer(modifier = Modifier.height(10.dp))
 
-                                // Realtime Nudge activity feedback
+                                // Realtime Nudge activity feedback banner
                                 if (searchState.lastNudgeMessage.isNotEmpty()) {
                                     Surface(
                                         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                                        shape = RoundedCornerShape(10.dp),
+                                        shape = RoundedCornerShape(8.dp),
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(8.dp),
+                                            modifier = Modifier.padding(6.dp),
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Person,
                                                 contentDescription = "Nudge Feed",
                                                 tint = MaterialTheme.colorScheme.secondary,
-                                                modifier = Modifier.size(16.dp)
+                                                modifier = Modifier.size(14.dp)
                                             )
                                             Text(
                                                 text = searchState.lastNudgeMessage,
                                                 style = MaterialTheme.typography.bodySmall,
                                                 fontWeight = FontWeight.SemiBold,
+                                                fontSize = 10.sp,
                                                 modifier = Modifier.weight(1f)
                                             )
                                         }
                                     }
-                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Spacer(modifier = Modifier.height(8.dp))
                                 }
 
-                                // Interactive Nudge CTA Button using the Star / Leaderboard Logo!
-                                Button(
-                                    onClick = onSendNudge,
-                                    enabled = searchState.nudgeCountLeft > 0,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.secondary,
-                                        contentColor = MaterialTheme.colorScheme.onSecondary
-                                    ),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(48.dp)
-                                        .testTag("pvp_nudge_action_btn"),
-                                    shape = RoundedCornerShape(10.dp)
+                                // Interactive Nudges row
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Star, // Leaderboard logo used on the nudge trigger
-                                        contentDescription = "Leaderboard Nudge Logo",
-                                        tint = Color(0xFFFFB300),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "PvP SPEED NUDGE (${searchState.nudgeCountLeft}/3)",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp
-                                    )
-                                }
+                                    // 1. Standard PvP Nudge
+                                    Button(
+                                        onClick = onSendNudge,
+                                        enabled = searchState.nudgeCountLeft > 0,
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.secondary,
+                                            contentColor = MaterialTheme.colorScheme.onSecondary
+                                        ),
+                                        modifier = Modifier
+                                            .weight(1.3f)
+                                            .height(38.dp)
+                                            .testTag("pvp_nudge_action_btn"),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = "Nudge Standard",
+                                            tint = Color(0xFFFFB300),
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "NUDGE (${searchState.nudgeCountLeft}/3)",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 9.sp
+                                        )
+                                    }
 
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Send a speed barrier nudge to subtract 15% from opponent progress! (Saves your puzzle solve rate)",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center,
-                                    fontSize = 10.sp,
-                                    modifier = Modifier.padding(horizontal = 12.dp)
-                                )
+                                    // 2. LinkedIn Nudge
+                                    Button(
+                                        onClick = { onSendSocialNudge("LinkedIn") },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFF0077B5),
+                                            contentColor = Color.White
+                                        ),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(38.dp),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "LINKEDIN",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 9.sp
+                                        )
+                                    }
+
+                                    // 3. Instagram Nudge
+                                    Button(
+                                        onClick = { onSendSocialNudge("Instagram") },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFFE1306C),
+                                            contentColor = Color.White
+                                        ),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(38.dp),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "INSTAGRAM",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 9.sp
+                                        )
+                                    }
+                                }
                             }
 
                             MatchmakingState.MatchFinished -> {
@@ -1027,18 +1214,19 @@ fun LeaderboardScreen(
                                     Spacer(modifier = Modifier.height(12.dp))
 
                                     Text(
-                                        text = "Solve Time Comparison:",
+                                        text = "Solve Time & Analysis Comparison:",
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = "Your Time: ${result.solveTimeSelf}s | Opponent (${result.opponentName}): ${result.solveTimeOpponent}s",
+                                        text = "Your Time: ${result.solveTimeSelf}s | Mistakes: ${result.mistakes}\nOpponent (${result.opponentName}): ${result.solveTimeOpponent}s",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontWeight = FontWeight.SemiBold,
+                                        textAlign = TextAlign.Center
                                     )
 
-                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Spacer(modifier = Modifier.height(12.dp))
                                     Card(
                                         modifier = Modifier.fillMaxWidth(),
                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
@@ -1072,7 +1260,44 @@ fun LeaderboardScreen(
                                         }
                                     }
 
-                                    Spacer(modifier = Modifier.height(24.dp))
+                                    // Claim Certificate button
+                                    if (result.isWon) {
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Button(
+                                            onClick = {
+                                                val size = result.size
+                                                val diffLabel = "PVP " + when(result.size) {
+                                                    4 -> "Children 4x4 Quick"
+                                                    else -> "Standard 9x9 Classic"
+                                                }
+                                                val durationSecs = result.solveTimeSelf.toLong()
+                                                val synapticSpeed = (size * size * 100f) / maxOf(5, result.solveTimeSelf)
+                                                val focusRating = (100.0 - result.mistakes * 15.0).coerceIn(52.0, 100.0)
+                                                val globalPercentile = (result.solveTimeSelf * 0.05).coerceAtLeast(0.005)
+                                                onClaimPvpCertificate(
+                                                    size,
+                                                    diffLabel,
+                                                    durationSecs,
+                                                    synapticSpeed.toDouble(),
+                                                    focusRating,
+                                                    globalPercentile
+                                                )
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD4AF37)),
+                                            modifier = Modifier.fillMaxWidth().height(48.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Star,
+                                                contentDescription = "Certificate Unlocked",
+                                                tint = Color.Black,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text("🏆 CLAIM PVP CERTIFICATE & SHARE", color = Color.Black, fontWeight = FontWeight.Black, fontSize = 12.sp)
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(16.dp))
                                     Button(
                                         onClick = onDismissMatch,
                                         modifier = Modifier.fillMaxWidth()

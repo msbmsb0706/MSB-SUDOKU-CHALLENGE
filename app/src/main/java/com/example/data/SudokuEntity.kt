@@ -40,7 +40,9 @@ data class UserProfileEntity(
     val facebookUrl: String = "",
     val instagramUrl: String = "",
     val countryName: String = "United States",
-    val countryFlag: String = "🇺🇸"
+    val countryFlag: String = "🇺🇸",
+    val phoneNumber: String = "",
+    val certificatePassword: String = ""
 )
 
 @Entity(tableName = "reward_transaction")

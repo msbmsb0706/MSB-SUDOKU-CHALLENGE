@@ -1246,15 +1246,67 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                     synapticSpeed = aiSynapticSpeedHertz,
                     focusRating = aiCognitiveFocus,
                     globalPercentile = aiGlobalPercentile,
-                    countryCode = when(userProfile?.region?.lowercase()) {
-                        "americas" -> "US"
-                        "europe" -> "DE"
-                        "asia-pacific" -> "JP"
-                        "india" -> "IN"
-                        "vietnam" -> "VN"
-                        "africa" -> "NG"
-                        else -> "US"
+                    countryCode = when(userProfile?.countryName) {
+                        "United States" -> "US"
+                        "Canada" -> "CA"
+                        "Brazil" -> "BR"
+                        "Mexico" -> "MX"
+                        "Argentina" -> "AR"
+                        "Colombia" -> "CO"
+                        "Chile" -> "CL"
+                        "Peru" -> "PE"
+                        "Ecuador" -> "EC"
+                        "Venezuela" -> "VE"
+                        "United Kingdom" -> "GB"
+                        "Germany" -> "DE"
+                        "France" -> "FR"
+                        "Italy" -> "IT"
+                        "Spain" -> "ES"
+                        "Netherlands" -> "NL"
+                        "Switzerland" -> "CH"
+                        "Sweden" -> "SE"
+                        "Norway" -> "NO"
+                        "Austria" -> "AT"
+                        "Belgium" -> "BE"
+                        "Denmark" -> "DK"
+                        "Finland" -> "FI"
+                        "Poland" -> "PL"
+                        "Portugal" -> "PT"
+                        "Greece" -> "GR"
+                        "Turkey" -> "TR"
+                        "Singapore" -> "SG"
+                        "India" -> "IN"
+                        "Japan" -> "JP"
+                        "South Korea" -> "KR"
+                        "China" -> "CN"
+                        "Australia" -> "AU"
+                        "New Zealand" -> "NZ"
+                        "Indonesia" -> "ID"
+                        "Malaysia" -> "MY"
+                        "Pakistan" -> "PK"
+                        "Bangladesh" -> "BD"
+                        "Vietnam" -> "VN"
+                        "Thailand" -> "TH"
+                        "Philippines" -> "PH"
+                        "Nigeria" -> "NG"
+                        "Egypt" -> "EG"
+                        "South Africa" -> "ZA"
+                        "Kenya" -> "KE"
+                        "Ghana" -> "GH"
+                        "Morocco" -> "MA"
+                        "Algeria" -> "DZ"
+                        "Ethiopia" -> "ET"
+                        else -> when(userProfile?.region?.lowercase()) {
+                            "americas" -> "US"
+                            "europe" -> "DE"
+                            "asia-pacific" -> "JP"
+                            "india" -> "IN"
+                            "vietnam" -> "VN"
+                            "africa" -> "NG"
+                            else -> "US"
+                        }
                     },
+                    expectedCertificatePassword = userProfile?.certificatePassword ?: "",
                     onClose = { showCertificateDialog = false }
                 )
             }
@@ -1275,20 +1327,82 @@ fun ArenaScreenTab(viewModel: SudokuViewModel) {
     val fastestTimes by viewModel.fastestCompletionTimes.collectAsStateWithLifecycle()
     val isRefreshingFastest by viewModel.isFetchingFastestTimes.collectAsStateWithLifecycle()
 
-    LeaderboardScreen(
-        players = players,
-        selectedRegion = selectedRegion,
-        onRegionSelected = { viewModel.regionFilter.value = it },
-        searchState = searchState,
-        recentMatchResult = recentMatchResult,
-        onEnterArena = { mode -> viewModel.enterCompetitiveArena(mode) },
-        onDismissMatch = { viewModel.dismissMatchScreen() },
-        userProfile = userProfile,
-        fastestTimes = fastestTimes,
-        isRefreshingFastest = isRefreshingFastest,
-        onRefreshFastest = { viewModel.refreshGlobalFastestTimes() },
-        onSendNudge = { viewModel.sendNudge() }
-    )
+    var showCertificateDialog by remember { mutableStateOf(false) }
+    var certificateNameInput by remember { mutableStateOf("") }
+    LaunchedEffect(userProfile) {
+        if (certificateNameInput.isEmpty() && userProfile != null) {
+            certificateNameInput = userProfile?.username ?: "MSB GRANDMASTER"
+        }
+    }
+
+    var pvpGridSize by remember { mutableStateOf(9) }
+    var pvpDifficultyLabel by remember { mutableStateOf("PVP Duel Deciphers") }
+    var pvpDurationSeconds by remember { mutableStateOf(120L) }
+    var pvpSynapticSpeed by remember { mutableStateOf(3.1) }
+    var pvpFocusRating by remember { mutableStateOf(98.0) }
+    var pvpGlobalPercentile by remember { mutableStateOf(0.12) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        LeaderboardScreen(
+            players = players,
+            selectedRegion = selectedRegion,
+            onRegionSelected = { viewModel.regionFilter.value = it },
+            searchState = searchState,
+            recentMatchResult = recentMatchResult,
+            onEnterArena = { mode, size -> viewModel.enterCompetitiveArena(mode, size) },
+            onDismissMatch = { viewModel.dismissMatchScreen() },
+            userProfile = userProfile,
+            fastestTimes = fastestTimes,
+            isRefreshingFastest = isRefreshingFastest,
+            onRefreshFastest = { viewModel.refreshGlobalFastestTimes() },
+            onSendNudge = { viewModel.sendNudge() },
+            onSolveBoost = { amount -> viewModel.boostPvpProgress(amount) },
+            onPvpCellSelected = { row, col -> viewModel.selectPvpCell(row, col) },
+            onPvpNumberEntered = { number -> viewModel.enterPvpNumber(number) },
+            onPvpClearCell = { viewModel.clearPvpCell() },
+            onSendSocialNudge = { platform -> viewModel.sendSocialNudge(platform) },
+            onClaimPvpCertificate = { size, diff, duration, speed, focus, percentile ->
+                pvpGridSize = size
+                pvpDifficultyLabel = diff
+                pvpDurationSeconds = duration
+                pvpSynapticSpeed = speed
+                pvpFocusRating = focus
+                pvpGlobalPercentile = percentile
+                showCertificateDialog = true
+            }
+        )
+
+        if (showCertificateDialog) {
+            WinningCertificateOverlay(
+                userName = certificateNameInput,
+                onNameChange = { certificateNameInput = it },
+                gridSize = pvpGridSize,
+                difficultyLabel = pvpDifficultyLabel,
+                durationSeconds = pvpDurationSeconds,
+                recordText = "OFFICIAL PVP ONLINE MULTIPLAYER VICTOR",
+                synapticSpeed = pvpSynapticSpeed,
+                focusRating = pvpFocusRating,
+                globalPercentile = pvpGlobalPercentile,
+                countryCode = when(userProfile?.countryName) {
+                    "United States" -> "US"
+                    "United Kingdom" -> "GB"
+                    "Japan" -> "JP"
+                    "Czech Republic" -> "CZ"
+                    "Greece" -> "GR"
+                    "Spain" -> "ES"
+                    "India" -> "IN"
+                    "Ghana" -> "GH"
+                    "Germany" -> "DE"
+                    "France" -> "FR"
+                    "Canada" -> "CA"
+                    "Australia" -> "AU"
+                    else -> "UN"
+                },
+                expectedCertificatePassword = userProfile?.certificatePassword ?: "",
+                onClose = { showCertificateDialog = false }
+            )
+        }
+    }
 }
 
 
@@ -1572,6 +1686,7 @@ fun WinningCertificateOverlay(
     focusRating: Double,
     globalPercentile: Double,
     countryCode: String,
+    expectedCertificatePassword: String = "",
     onClose: () -> Unit
 ) {
     val context = LocalContext.current
@@ -1781,6 +1896,10 @@ fun WinningCertificateOverlay(
         }
     }
 
+    var enteredCertPassword by remember { mutableStateOf("") }
+    var passwordError by remember { mutableStateOf<String?>(null) }
+    var isCertUnlocked by remember { mutableStateOf(expectedCertificatePassword.isBlank()) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1788,7 +1907,107 @@ fun WinningCertificateOverlay(
             .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
-        Card(
+        if (!isCertUnlocked) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 420.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFFD4AF37))
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFD4AF37).copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = "Lock",
+                            tint = Color(0xFFD4AF37),
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+
+                    Text(
+                        text = "VERIFY CERTIFICATE KEY",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFFD4AF37)
+                    )
+
+                    Text(
+                        text = "This graduation document is linked under your secured profile. Enter your Certificate Password to unlock PDF/PNG exports:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+
+                    var certVisible by remember { mutableStateOf(false) }
+
+                    OutlinedTextField(
+                        value = enteredCertPassword,
+                        onValueChange = {
+                            enteredCertPassword = it
+                            passwordError = null
+                        },
+                        label = { Text("Certificate Password") },
+                        visualTransformation = if (certVisible) androidx.compose.ui.text.input.VisualTransformation.None else androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { certVisible = !certVisible }) {
+                                Icon(
+                                    imageVector = if (certVisible) Icons.Default.Done else Icons.Default.PlayArrow,
+                                    contentDescription = "Toggle"
+                                )
+                            }
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    passwordError?.let { err ->
+                        Text(text = err, color = Color.Red, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onClose,
+                            modifier = Modifier.weight(1f).height(46.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("CANCEL", fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = {
+                                if (enteredCertPassword == expectedCertificatePassword) {
+                                    isCertUnlocked = true
+                                } else {
+                                    passwordError = "Incorrect password! Handshake failed."
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD4AF37)),
+                            modifier = Modifier.weight(1f).height(46.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("UNLOCK", color = Color.Black, fontWeight = FontWeight.ExtraBold)
+                        }
+                    }
+                }
+            }
+        } else {
+            Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
@@ -2772,6 +2991,7 @@ fun WinningCertificateOverlay(
                     }
                 }
             }
+        }
         }
     }
 }

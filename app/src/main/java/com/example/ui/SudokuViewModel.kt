@@ -910,7 +910,7 @@ class SudokuViewModel(
 
     // --- Global Matchmaking competitive Arena Simulator ---
 
-    fun enterCompetitiveArena(mode: String = "One-to-One") {
+    fun enterCompetitiveArena(mode: String = "One-to-One", size: Int = gridSize.value) {
         val buyInFee = when (mode) {
             "Group Challenge" -> 8
             "Tournament Cup" -> 12
@@ -962,11 +962,28 @@ class SudokuViewModel(
                 opponentFlag = randomOpponent.third
             )
 
+            // Generate real dynamic sudoku grid for PVP
+            val diff = when (mode) {
+                "Tournament Cup" -> SudokuDifficulty.HARD
+                "Group Challenge" -> SudokuDifficulty.MEDIUM
+                else -> SudokuDifficulty.EASY
+            }
+            val (puzzle, solution) = SudokuGenerator.generate(diff, size)
+            val pvpCells = ArrayList<SudokuCell>()
+            for (r in 0 until size) {
+                for (c in 0 until size) {
+                    val value = puzzle[r][c]
+                    pvpCells.add(SudokuCell(r, c, value, value != 0))
+                }
+            }
+
             // Dynamic Solving Competitive progress bar simulator (with fully interactive live nudging!)
             delay(1500)
-            var selfProg = 15
-            var oppProg = 18
-            var secsLeft = 45
+            val initialEmptyCount = pvpCells.count { it.value == 0 }
+            val totalBlank = if (initialEmptyCount > 0) initialEmptyCount else 1
+            var selfProg = 0
+            var oppProg = 5
+            var secsLeft = if (size == 4) 60 else 180 // 60s for 4x4, 180s for 9x9 PvP speed solver
             var nudgeLeft = 3
             var nudgeMsg = when (mode) {
                 "Group Challenge" -> "5-Player Active LOBBY! Race to solve!"
@@ -977,87 +994,138 @@ class SudokuViewModel(
             // Populate multiple opponents if not One-to-One
             val opponentProgressesMap = mutableMapOf<String, Int>()
             if (mode == "Group Challenge") {
-                opponentProgressesMap["Yuki_Tokyo"] = 18
-                opponentProgressesMap["Sophia_Athens"] = 12
-                opponentProgressesMap["Sven_Berlin"] = 15
-                opponentProgressesMap["Adebayo_Accra"] = 10
+                opponentProgressesMap["Yuki_Tokyo"] = 5
+                opponentProgressesMap["Sophia_Athens"] = 3
+                opponentProgressesMap["Sven_Berlin"] = 4
+                opponentProgressesMap["Adebayo_Accra"] = 2
             } else if (mode == "Tournament Cup") {
-                opponentProgressesMap["Sven_Berlin"] = 22
-                opponentProgressesMap["Max_Prague"] = 18
-                opponentProgressesMap["Sofia_Athens"] = 20
+                opponentProgressesMap["Sven_Berlin"] = 6
+                opponentProgressesMap["Max_Prague"] = 5
+                opponentProgressesMap["Sofia_Athens"] = 8
             }
 
+            val chatLogItems = mutableListOf(
+                "System: Match secured between you and ${randomOpponent.third} ${randomOpponent.first}!",
+                "System: Live server synchronization active. Grid generation completed successfully.",
+                "${randomOpponent.first}: Hello and good luck! Let's resolve the matrix!"
+            )
+
             searchState.value = MatchmakingState.SolvingConflict(
-                progressSelf = selfProg,
+                progressSelf = 0,
                 progressOpponent = oppProg,
                 secondsLeft = secsLeft,
                 lastNudgeMessage = nudgeMsg,
                 nudgeCountLeft = nudgeLeft,
-                opponentProgresses = opponentProgressesMap,
-                arenaMode = mode
+                opponentProgresses = opponentProgressesMap.toMap(),
+                arenaMode = mode,
+                pvpGridSize = size,
+                pvpGrid = pvpCells,
+                pvpSelectedCell = null,
+                pvpSolution = (0 until size * size).map { solution[it / size][it % size] },
+                liveChatLog = chatLogItems.toList(),
+                pvpMistakes = 0
             )
 
             while (selfProg < 100 && oppProg < 100 && secsLeft > 0) {
                 delay(1000)
                 secsLeft -= 1
                 
-                // Read current values because they might have been mutated by sendNudge()
+                // Read current values because they might have been mutated by user moves/nudges
                 val current = searchState.value
                 if (current is MatchmakingState.SolvingConflict) {
                     selfProg = current.progressSelf
                     oppProg = current.progressOpponent
                     nudgeLeft = current.nudgeCountLeft
                     nudgeMsg = current.lastNudgeMessage
+                } else {
+                    break
                 }
 
-                // Standard speed solving progress increments
-                selfProg += Random.nextInt(6, 12)
-                
-                if (mode == "One-to-One") {
-                    oppProg += Random.nextInt(5, 12)
-                } else {
-                    // Update all map progress states
+                // Simulating opponent moves dynamically
+                val increment = when (mode) {
+                    "Tournament Cup" -> Random.nextInt(3, 7)
+                    else -> Random.nextInt(2, 5)
+                }
+                oppProg = (oppProg + increment).coerceAtMost(99)
+
+                if (mode != "One-to-One") {
                     opponentProgressesMap.keys.forEach { opponentKey ->
                         val currentOppVal = opponentProgressesMap[opponentKey] ?: 10
-                        val increment = when (mode) {
-                            "Tournament Cup" -> Random.nextInt(7, 13) // Highly intensive
-                            else -> Random.nextInt(5, 12)
+                        val opInc = when (mode) {
+                            "Tournament Cup" -> Random.nextInt(3, 8)
+                            else -> Random.nextInt(2, 6)
                         }
-                        val newVal = (currentOppVal + increment).coerceAtMost(100)
+                        val newVal = (currentOppVal + opInc).coerceAtLeast(0).coerceAtMost(99)
                         opponentProgressesMap[opponentKey] = newVal
                     }
-                    // Sync main oppProg to the highest progress of any opponents in group
-                    oppProg = opponentProgressesMap.values.maxOrNull() ?: 18
+                    oppProg = (opponentProgressesMap.values.maxOrNull() ?: oppProg).coerceAtMost(99)
                 }
 
-                // Opponent randomly uses "nudge back" to subtract your progress (nudge took player time)
-                if (Random.nextFloat() < 0.22f && selfProg > 15) {
-                    val sabotage = Random.nextInt(8, 14)
+                // Standard opponent trash talk logs during competitive play
+                if (secsLeft % 15 == 0) {
+                    val messages = listOf(
+                        "Keep focused! Almost solved my block! 😉",
+                        "Wait, did I lock the wrong number? Oh no... 🤦‍♂️",
+                        "Your synaptic processing looks incredibly fast!",
+                        "Time is ticking! Let's go! 🚀",
+                        "This Sudoku is highly demanding!"
+                    )
+                    chatLogItems.add("${randomOpponent.first}: ${messages.random()}")
+                }
+
+                // Simulated Opponent nudging back randomly to slow down your focus rating
+                if (Random.nextFloat() < 0.15f && selfProg > 10) {
+                    val sabotage = Random.nextInt(5, 10)
                     selfProg = (selfProg - sabotage).coerceAtLeast(0)
-                    val sabotageOpponentName = if (mode == "One-to-One") randomOpponent.first else opponentProgressesMap.keys.shuffled().firstOrNull() ?: "Rival"
-                    nudgeMsg = "$sabotageOpponentName Nudged you! Slashed ${sabotage}% progress! ⚠️"
+                    
+                    val currentConflict = searchState.value
+                    if (currentConflict is MatchmakingState.SolvingConflict) {
+                        val updatedGrid = currentConflict.pvpGrid.map { cell ->
+                            if (!cell.isClue && cell.value > 0 && Random.nextFloat() < 0.3f) {
+                                cell.copy(value = 0)
+                            } else cell
+                        }
+                        val countCorrect = updatedGrid.count { !it.isClue && it.value > 0 && it.value == currentConflict.pvpSolution[it.row * size + it.col] }
+                        selfProg = if (totalBlank > 0) (countCorrect * 100 / totalBlank) else 0
+
+                        val targetName = if (mode == "One-to-One") randomOpponent.first else opponentProgressesMap.keys.shuffled().firstOrNull() ?: "Rival"
+                        chatLogItems.add("$targetName: Sent a quick nudge to confuse you! ⚠️ Slashed some cells!")
+                        nudgeMsg = "$targetName Nudged you! Slashed progress by ${sabotage}%! ⚠️"
+
+                        searchState.value = currentConflict.copy(
+                            progressSelf = selfProg,
+                            progressOpponent = oppProg,
+                            secondsLeft = secsLeft,
+                            lastNudgeMessage = nudgeMsg,
+                            liveChatLog = chatLogItems.toList(),
+                            pvpGrid = updatedGrid
+                        )
+                    }
+                } else {
+                    val currentConflict = searchState.value
+                    if (currentConflict is MatchmakingState.SolvingConflict) {
+                        searchState.value = currentConflict.copy(
+                            progressOpponent = oppProg,
+                            secondsLeft = secsLeft,
+                            opponentProgresses = opponentProgressesMap.toMap(),
+                            liveChatLog = chatLogItems.toList()
+                        )
+                    }
                 }
-
-                if (selfProg > 100) selfProg = 100
-                if (oppProg > 100) oppProg = 100
-
-                searchState.value = MatchmakingState.SolvingConflict(
-                    progressSelf = selfProg,
-                    progressOpponent = oppProg,
-                    secondsLeft = secsLeft,
-                    lastNudgeMessage = nudgeMsg,
-                    nudgeCountLeft = nudgeLeft,
-                    opponentProgresses = opponentProgressesMap.toMap(),
-                    arenaMode = mode
-                )
             }
 
-            // Determine final outcome based on who finished closest to 100 or reached 100 first
-            val hasWon = selfProg >= oppProg
-            val elapsedSecs = 180 + (45 - secsLeft) * 4
-            val opponentSecs = if (hasWon) elapsedSecs + Random.nextInt(35, 65) else elapsedSecs - Random.nextInt(15, 35)
+            // Determine winner based on final state or progress
+            val finalConflictState = searchState.value as? MatchmakingState.SolvingConflict
+            val finalSelfProg = finalConflictState?.progressSelf ?: selfProg
+            val finalOppProg = finalConflictState?.progressOpponent ?: oppProg
+            val finalMistakes = finalConflictState?.pvpMistakes ?: 0
 
-            // Reward Calculations based on selected Arena Mode
+            val hasWon = finalSelfProg >= finalOppProg
+            val totalMatchLimit = if (size == 4) 60 else 180
+            val elapsedSecs = maxOf(5, totalMatchLimit - secsLeft)
+            val opponentSecs = if (hasWon) elapsedSecs + Random.nextInt(10, 30) else elapsedSecs - Random.nextInt(5, 15)
+
+            // Reward calculation
             val pointsEarned = when (mode) {
                 "Tournament Cup" -> if (hasWon) Random.nextInt(100, 150) else -Random.nextInt(35, 60)
                 "Group Challenge" -> if (hasWon) Random.nextInt(80, 130) else -Random.nextInt(30, 55)
@@ -1074,24 +1142,20 @@ class SudokuViewModel(
                 else -> if (hasWon) Random.nextInt(3, 6) else 1
             }
 
-            // Apply results to database
+            // Apply results to database and log history
             val user = repository.userProfile.first()
             if (user != null) {
                 val newPoints = (2000 + (user.xp / 10)) + pointsEarned
                 val cappedPoints = if (newPoints < 1000) 1000 else newPoints
-
-                val resultingXp = user.xp + (if (hasWon) 150 else 50)
+                val resultingXp = user.xp + (if (hasWon) 180 else 60)
                 val newLvl = 1 + (resultingXp / 500)
-
-                val resultingPoints = user.playGoldPoints + playGoldEarned
-                val resultingGems = user.gems + gemsEarned
-
+                
                 repository.saveUserProfile(
                     user.copy(
                         xp = resultingXp,
                         level = newLvl,
-                        playGoldPoints = resultingPoints,
-                        gems = resultingGems,
+                        playGoldPoints = user.playGoldPoints + playGoldEarned,
+                        gems = user.gems + gemsEarned,
                         gamesPlayed = user.gamesPlayed + 1,
                         gamesWon = user.gamesWon + (if (hasWon) 1 else 0)
                     )
@@ -1101,38 +1165,19 @@ class SudokuViewModel(
                     levelUpEvent.value = newLvl
                 }
 
-                // Log play run trace
-                val history = GameHistoryEntity(
+                // Save to game_history database! This achieves "real time history in that"!
+                val historyEntry = GameHistoryEntity(
                     userId = user.userId,
-                    difficulty = "ARENA",
+                    difficulty = "PVP $mode ${size}x${size}",
                     timeElapsedSeconds = elapsedSecs.toLong(),
-                    mistakeCount = 0,
-                    xpGained = if (hasWon) 150 else 50,
+                    mistakeCount = finalMistakes,
+                    xpGained = if (hasWon) 180 else 60,
                     pgpGained = playGoldEarned,
                     status = if (hasWon) "WON" else "LOST"
                 )
-                repository.insertGameHistory(history)
+                repository.insertGameHistory(historyEntry)
 
-                // Submit winning Arena times to real-time global leaderboard (Simulated offline)
-                if (hasWon) {
-                    launch {
-                        val flag = user.countryFlag ?: "🇺🇸"
-                        val name = user.countryName ?: "United States"
-                        val reg = user.region ?: "Americas"
-                        val username = user.username.ifBlank { "Anonymous" }
-                        FirestoreClient.submitCompletionTime(
-                            username = username,
-                            timeSeconds = elapsedSecs.toLong(),
-                            difficulty = "ARENA",
-                            countryFlag = flag,
-                            countryName = name,
-                            region = reg
-                        )
-                        refreshGlobalFastestTimes()
-                    }
-                }
-
-                // Sync competitive database player representation
+                // Submit completion to global leader board representation!
                 val updatedLby = LeaderboardPlayerEntity(
                     username = user.username,
                     rank = 2,
@@ -1151,12 +1196,92 @@ class SudokuViewModel(
                 pointsDelta = pointsEarned,
                 playGoldAwarded = playGoldEarned,
                 gemsAwarded = gemsEarned,
-                opponentName = if (mode == "One-to-One") randomOpponent.first else "$mode Rivals"
+                opponentName = if (mode == "One-to-One") randomOpponent.first else "$mode Rivals",
+                size = size,
+                mistakes = finalMistakes
             )
 
             launch { loadLeaderboard(regionFilter.value) }
 
             searchState.value = MatchmakingState.MatchFinished
+        }
+    }
+
+    fun selectPvpCell(row: Int, col: Int) {
+        val current = searchState.value
+        if (current is MatchmakingState.SolvingConflict) {
+            searchState.value = current.copy(pvpSelectedCell = Pair(row, col))
+        }
+    }
+
+    fun enterPvpNumber(number: Int) {
+        val current = searchState.value
+        if (current is MatchmakingState.SolvingConflict) {
+            val cellSelect = current.pvpSelectedCell ?: return
+            val r = cellSelect.first
+            val c = cellSelect.second
+            val size = current.pvpGridSize
+            val currentCells = current.pvpGrid.toMutableList()
+            val index = r * size + c
+            val cell = currentCells[index]
+
+            if (cell.isClue) return
+
+            val solutionVal = current.pvpSolution.getOrNull(index) ?: return
+            val isCorrect = number == solutionVal
+            val isError = !isCorrect
+
+            val newMistakes = if (isError) current.pvpMistakes + 1 else current.pvpMistakes
+            
+            // Add chat log message for wrong/correct cell selection for live feedback
+            val updatedChat = current.liveChatLog.toMutableList()
+            if (isError) {
+                updatedChat.add("System: Cell ($r, $c) answer $number is incorrect! Warning penalty triggered! (Mistakes: $newMistakes)")
+            } else {
+                updatedChat.add("System: Cell ($r, $c) correctly solved as $number!")
+            }
+
+            // Update cell value
+            currentCells[index] = cell.copy(
+                value = number,
+                isError = isError
+            )
+
+            // Recalculate player progress
+            val totalCellsCount = size * size
+            val cluesCount = currentCells.count { it.isClue }
+            val blankTarget = totalCellsCount - cluesCount
+            val correctCount = currentCells.count { !it.isClue && it.value > 0 && it.value == current.pvpSolution[it.row * size + it.col] }
+            
+            val selfProg = if (blankTarget > 0) (correctCount * 100 / blankTarget).coerceAtMost(100) else 100
+
+            var finalSearchState = current.copy(
+                pvpGrid = currentCells,
+                progressSelf = selfProg,
+                pvpMistakes = newMistakes,
+                liveChatLog = updatedChat.toList()
+            )
+
+            searchState.value = finalSearchState
+        }
+    }
+
+    fun clearPvpCell() {
+        val current = searchState.value
+        if (current is MatchmakingState.SolvingConflict) {
+            val cellSelect = current.pvpSelectedCell ?: return
+            val r = cellSelect.first
+            val c = cellSelect.second
+            val size = current.pvpGridSize
+            val currentCells = current.pvpGrid.toMutableList()
+            val index = r * size + c
+            val cell = currentCells[index]
+
+            if (cell.isClue) return
+
+            currentCells[index] = cell.copy(value = 0, isError = false)
+
+            searchState.value = current.copy(pvpGrid = currentCells)
         }
     }
 
@@ -1172,14 +1297,69 @@ class SudokuViewModel(
                     (progress - 15).coerceAtLeast(0)
                 }
 
+                // Add message to live chat log
+                val updatedChat = current.liveChatLog.toMutableList()
+                val handleMsg = "System: You sent a certified PvP Speed Nudge! Slashed rivals by -15%! 👋"
+                updatedChat.add(handleMsg)
+
                 searchState.value = current.copy(
                     progressSelf = newSelfProg,
                     progressOpponent = newOppProg,
                     opponentProgresses = updatedOpponents,
                     nudgeCountLeft = current.nudgeCountLeft - 1,
-                    lastNudgeMessage = "Sent Speed Nudge! Sabotaged all tournament rivals by -15%! 🚀"
+                    lastNudgeMessage = "Sent Speed Nudge! Sabotaged all tournament rivals by -15%! 🚀",
+                    liveChatLog = updatedChat.toList()
                 )
             }
+        }
+    }
+
+    fun sendSocialNudge(platform: String) {
+        val current = searchState.value
+        if (current is MatchmakingState.SolvingConflict) {
+            val updatedChat = current.liveChatLog.toMutableList()
+            var handleName = ""
+            val user = userProfile.value
+            if (platform == "LinkedIn") {
+                handleName = user?.linkedInUrl?.ifBlank { "" } ?: ""
+            } else if (platform == "Instagram") {
+                handleName = user?.instagramUrl?.ifBlank { "" } ?: ""
+            }
+            if (handleName.isBlank()) {
+                handleName = user?.username ?: "Anonymous"
+            }
+
+            // Real-time saved activity log with LinkedIn/Instagram handles
+            val logMessage = "System: ${user?.username ?: "You"} unleashed a real-time $platform Nudge! (Saved Handle: @$handleName)"
+            updatedChat.add(logMessage)
+
+            val newOppProg = (current.progressOpponent - 18).coerceAtLeast(0)
+            val updatedOpponents = current.opponentProgresses.mapValues { (_, progress) ->
+                (progress - 18).coerceAtLeast(0)
+            }
+
+            searchState.value = current.copy(
+                progressOpponent = newOppProg,
+                opponentProgresses = updatedOpponents,
+                lastNudgeMessage = "Social Nudge unleashed! Reduced rival speed via @$handleName!",
+                liveChatLog = updatedChat.toList()
+            )
+        }
+    }
+
+    fun boostPvpProgress(amount: Int) {
+        val current = searchState.value
+        if (current is MatchmakingState.SolvingConflict) {
+            val newSelfProg = (current.progressSelf + amount).coerceIn(0, 100)
+            val msg = if (amount > 0) {
+                "Correct digit placement! Speed Boost +$amount% 🔥"
+            } else {
+                "Wrong digit inputted! Delay Penalty ${amount}% ⚠️"
+            }
+            searchState.value = current.copy(
+                progressSelf = newSelfProg,
+                lastNudgeMessage = msg
+            )
         }
     }
 
@@ -1275,6 +1455,7 @@ class SudokuViewModel(
     fun saveProfile(profile: UserProfileEntity) {
         viewModelScope.launch {
             repository.saveUserProfile(profile)
+            backupToPrefs(profile)
         }
     }
 
@@ -1366,6 +1547,8 @@ class SudokuViewModel(
             putString("saved_country_name", profile.countryName)
             putString("saved_country_flag", profile.countryFlag)
             putString("saved_user_id", profile.userId)
+            putString("saved_phone_number", profile.phoneNumber)
+            putString("saved_certificate_password", profile.certificatePassword)
             putInt("saved_xp", profile.xp)
             putInt("saved_level", profile.level)
             putInt("saved_play_gold_points", profile.playGoldPoints)
@@ -1385,10 +1568,12 @@ class SudokuViewModel(
         securityA: String,
         passwordRaw: String,
         countryName: String = "United States",
-        countryFlag: String = "🇺🇸"
+        countryFlag: String = "🇺🇸",
+        phoneNumber: String = "",
+        certificatePassword: String = ""
     ) {
-        if (email.isBlank() || username.isBlank() || securityQ.isBlank() || securityA.isBlank() || passwordRaw.isBlank()) {
-            registerError.value = "All credentials and security hints are strictly required."
+        if (email.isBlank() || username.isBlank() || securityQ.isBlank() || securityA.isBlank() || passwordRaw.isBlank() || certificatePassword.isBlank()) {
+            registerError.value = "All credentials, certificate passes, and security hints are strictly required."
             return
         }
         registerError.value = null
@@ -1410,6 +1595,8 @@ class SudokuViewModel(
                 securityQuestion = securityQ,
                 securityAnswer = securityA,
                 passwordHash = passwordRaw,
+                phoneNumber = phoneNumber,
+                certificatePassword = certificatePassword,
                 isLoggedIn = !secureOtpEnabled.value,
                 xp = 180,
                 level = 1,
@@ -1771,7 +1958,13 @@ sealed class MatchmakingState {
         val lastNudgeMessage: String = "",
         val nudgeCountLeft: Int = 3,
         val opponentProgresses: Map<String, Int> = emptyMap(),
-        val arenaMode: String = "One-to-One"
+        val arenaMode: String = "One-to-One",
+        val pvpGridSize: Int = 9,
+        val pvpGrid: List<SudokuCell> = emptyList(),
+        val pvpSelectedCell: Pair<Int, Int>? = null,
+        val pvpSolution: List<Int> = emptyList(),
+        val liveChatLog: List<String> = emptyList(),
+        val pvpMistakes: Int = 0
     ) : MatchmakingState()
     object MatchFinished : MatchmakingState()
     data class Error(val message: String) : MatchmakingState()
@@ -1784,7 +1977,9 @@ data class MatchResult(
     val pointsDelta: Int,
     val playGoldAwarded: Int,
     val gemsAwarded: Int,
-    val opponentName: String
+    val opponentName: String,
+    val size: Int = 9,
+    val mistakes: Int = 0
 )
 
 sealed class ClaimingProgress {

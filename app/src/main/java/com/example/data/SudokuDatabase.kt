@@ -13,7 +13,7 @@ import androidx.room.RoomDatabase
         LeaderboardPlayerEntity::class,
         GameHistoryEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class SudokuDatabase : RoomDatabase() {

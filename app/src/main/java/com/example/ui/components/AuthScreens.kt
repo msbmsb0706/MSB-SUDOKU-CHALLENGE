@@ -476,7 +476,6 @@ fun AuthRegisterScreen(
     viewModel: SudokuViewModel,
     onBackClicked: () -> Unit
 ) {
-    var isEmailMode by remember { mutableStateOf(true) }
     var emailInput by remember { mutableStateOf("") }
     var phoneCountryCode by remember { mutableStateOf("+1") }
     var phoneDigits by remember { mutableStateOf("") }
@@ -488,6 +487,8 @@ fun AuthRegisterScreen(
     var securityA by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passVisible by remember { mutableStateOf(false) }
+    var certPassword by remember { mutableStateOf("") }
+    var certPassVisible by remember { mutableStateOf(false) }
     var termsAgreed by remember { mutableStateOf(false) }
     var showTermsDialog by remember { mutableStateOf(false) }
     
@@ -546,87 +547,75 @@ fun AuthRegisterScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Choose registration method toggle
-            TabRow(
-                selectedTabIndex = if (isEmailMode) 0 else 1,
+            // Email Field
+            OutlinedTextField(
+                value = emailInput,
+                onValueChange = { emailInput = it },
+                label = { Text("Email Address ID") },
+                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 14.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                    .testTag("reg_email_input"),
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Secured Phone Section with Country Code dropdown selector
+            Text(
+                text = "PHONE SECTION WITH COUNTRY DIAL CODE",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                letterSpacing = 0.5.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Tab(
-                    selected = isEmailMode,
-                    onClick = { isEmailMode = true },
-                    text = { Text("Email Address", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
-                    icon = { Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                )
-                Tab(
-                    selected = !isEmailMode,
-                    onClick = { isEmailMode = false },
-                    text = { Text("Phone Number", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
-                    icon = { Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                )
-            }
-
-            if (isEmailMode) {
-                OutlinedTextField(
-                    value = emailInput,
-                    onValueChange = { emailInput = it },
-                    label = { Text("Email Address ID") },
-                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                    singleLine = true,
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("reg_email_input"),
-                    shape = RoundedCornerShape(12.dp)
-                )
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .weight(0.42f)
+                        .clickable { countryCodeExpanded = true }
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .weight(0.42f)
-                            .clickable { countryCodeExpanded = true }
-                    ) {
-                        OutlinedTextField(
-                            value = phoneCountryCode,
-                            onValueChange = {},
-                            readOnly = true,
-                            enabled = false,
-                            label = { Text("Code") },
-                            leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                            trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = "Select country code") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                                disabledBorderColor = MaterialTheme.colorScheme.outline,
-                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                    }
-
                     OutlinedTextField(
-                        value = phoneDigits,
-                        onValueChange = { phoneDigits = it.filter { char -> char.isDigit() } },
-                        label = { Text("Phone Number") },
-                        leadingIcon = { Icon(Icons.Default.Call, contentDescription = null) },
+                        value = phoneCountryCode,
+                        onValueChange = {},
+                        readOnly = true,
+                        enabled = false,
+                        label = { Text("Code") },
+                        leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                        trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = "Select country code") },
                         singleLine = true,
-                        placeholder = { Text("e.g. 8031234567") },
-                        modifier = Modifier
-                            .weight(0.58f)
-                            .testTag("reg_phone_input"),
-                        shape = RoundedCornerShape(12.dp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledBorderColor = MaterialTheme.colorScheme.outline,
+                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        shape = RoundedCornerShape(12.dp)
                     )
                 }
+
+                OutlinedTextField(
+                    value = phoneDigits,
+                    onValueChange = { phoneDigits = it.filter { char -> char.isDigit() } },
+                    label = { Text("Phone Number") },
+                    leadingIcon = { Icon(Icons.Default.Call, contentDescription = null) },
+                    singleLine = true,
+                    placeholder = { Text("e.g. 8031234567") },
+                    modifier = Modifier
+                        .weight(0.58f)
+                        .testTag("reg_phone_input"),
+                    shape = RoundedCornerShape(12.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+                )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -848,6 +837,29 @@ fun AuthRegisterScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("reg_password_input"),
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Choose Secure Certificate Password field
+            OutlinedTextField(
+                value = certPassword,
+                onValueChange = { certPassword = it },
+                label = { Text("Choose Secure Certificate Password") },
+                placeholder = { Text("Required to unlock/generate certificates") },
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFFD4AF37)) },
+                trailingIcon = {
+                    val icon = if (certPassVisible) Icons.Default.Done else Icons.Default.PlayArrow
+                    IconButton(onClick = { certPassVisible = !certPassVisible }) {
+                        Icon(imageVector = icon, contentDescription = "Toggle certificate password")
+                    }
+                },
+                singleLine = true,
+                visualTransformation = if (certPassVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("reg_cert_password_input"),
                 shape = RoundedCornerShape(12.dp)
             )
 
@@ -1203,11 +1215,20 @@ fun AuthRegisterScreen(
                         viewModel.registerError.value = "You must agree to the Terms & User Agreement under your absolute control."
                         return@Button
                     }
-                    val finalId = if (isEmailMode) {
-                        emailInput.trim().lowercase()
-                    } else {
-                        if (phoneDigits.isNotBlank()) "${phoneCountryCode}${phoneDigits.trim()}" else ""
+                    if (emailInput.isBlank()) {
+                        viewModel.registerError.value = "Email address is required for registration ID."
+                        return@Button
                     }
+                    if (phoneDigits.isBlank()) {
+                        viewModel.registerError.value = "Phone number digits are required to complete phone section."
+                        return@Button
+                    }
+                    if (certPassword.isBlank()) {
+                        viewModel.registerError.value = "Please choose a secure Certificate Password."
+                        return@Button
+                    }
+                    val finalId = emailInput.trim().lowercase()
+                    val fullPhoneNo = "${phoneCountryCode} ${phoneDigits.trim()}"
                     viewModel.registerUser(
                         email = finalId,
                         username = username,
@@ -1216,7 +1237,9 @@ fun AuthRegisterScreen(
                         securityA = securityA,
                         passwordRaw = password,
                         countryName = selectedCountry.name,
-                        countryFlag = selectedCountry.flag
+                        countryFlag = selectedCountry.flag,
+                        phoneNumber = fullPhoneNo,
+                        certificatePassword = certPassword
                     )
                 },
                 modifier = Modifier
