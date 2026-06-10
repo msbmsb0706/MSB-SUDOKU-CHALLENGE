@@ -61,6 +61,10 @@ fun LeaderboardScreen(
     onPvpWithdraw: () -> Unit = {},
     onPvpToggleEraseMode: () -> Unit = {},
     onSendPvpChatMessage: (String) -> Unit = {},
+    disableGridHelpers: Boolean = false,
+    hideLastRow: Boolean = false,
+    onToggleDisableGridHelpers: () -> Unit = {},
+    onToggleHideLastRow: () -> Unit = {},
     onClaimPvpCertificate: (Int, String, Long, Double, Double, Double) -> Unit = { _, _, _, _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
@@ -1007,7 +1011,70 @@ fun LeaderboardScreen(
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                // Dynamic custom game modifiers row
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Helper Layers Toggle Button ("without any layer")
+                                    val helperColor = if (disableGridHelpers) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+                                    val helperBg = if (disableGridHelpers) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                    
+                                    Surface(
+                                        color = helperBg,
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { onToggleDisableGridHelpers() }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            Text(
+                                                text = "Grid Layers: " + (if (disableGridHelpers) "OFF" else "ON"),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = helperColor,
+                                                fontSize = 9.5.sp
+                                            )
+                                        }
+                                    }
+
+                                    // Hide Last Row Numbers Toggle Button ("some of them last row will be hide numbers")
+                                    val lastRowColor = if (hideLastRow) Color(0xFFFF9800) else MaterialTheme.colorScheme.outline
+                                    val lastRowBg = if (hideLastRow) Color(0xFFFFF3E0) else MaterialTheme.colorScheme.surfaceVariant
+                                    
+                                    Surface(
+                                        color = lastRowBg,
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { onToggleHideLastRow() }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            Text(
+                                                text = "Blind Last Row: " + (if (hideLastRow) "ACTIVE" else "SHOW ALL"),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = lastRowColor,
+                                                fontSize = 9.5.sp
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(4.dp))
 
                                 // Dynamic interactive Sudoku board
                                 Box(
@@ -1020,6 +1087,8 @@ fun LeaderboardScreen(
                                         selectedCell = searchState.pvpSelectedCell,
                                         onCellSelected = { r, c -> onPvpCellSelected(r, c) },
                                         isPaused = false,
+                                        disableGridHelpers = disableGridHelpers,
+                                        hideLastRow = hideLastRow,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .aspectRatio(1f)

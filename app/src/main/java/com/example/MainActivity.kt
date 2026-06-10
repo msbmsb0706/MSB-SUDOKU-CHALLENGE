@@ -413,6 +413,8 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
     val isTeamTournamentActive by viewModel.isTeamTournamentActive.collectAsStateWithLifecycle()
     val teamTournamentPlayers by viewModel.teamTournamentPlayers.collectAsStateWithLifecycle()
     val userHasFinishedTournament by viewModel.userHasFinishedTournament.collectAsStateWithLifecycle()
+    val disableGridHelpers by viewModel.disableGridHelperLayers.collectAsStateWithLifecycle()
+    val hideLastRow by viewModel.hideLastRowNumbers.collectAsStateWithLifecycle()
 
     var showCertificateDialog by remember { mutableStateOf(false) }
     var certificateNameInput by remember { mutableStateOf("") }
@@ -892,6 +894,65 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                     TeammatesMiniProgressGrid(players = teamTournamentPlayers)
                 }
 
+                // Dynamic custom game modifiers row (Single Player)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val helpColor = if (disableGridHelpers) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+                    val helpBg = if (disableGridHelpers) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                    
+                    Surface(
+                        color = helpBg,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { viewModel.toggleDisableGridHelperLayers() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "Grid Layers: " + (if (disableGridHelpers) "OFF" else "ON"),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = helpColor,
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
+
+                    val rowColor = if (hideLastRow) Color(0xFFFF9800) else MaterialTheme.colorScheme.outline
+                    val rowBg = if (hideLastRow) Color(0xFFFFF3E0) else MaterialTheme.colorScheme.surfaceVariant
+                    
+                    Surface(
+                        color = rowBg,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { viewModel.toggleHideLastRowNumbers() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "Blind Last Row: " + (if (hideLastRow) "ACTIVE" else "SHOW ALL"),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = rowColor,
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
+                }
+
                 // 2. The Custom dynamic grid (4x4 or 9x9!)
                 Box(modifier = Modifier.weight(1.0f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     SudokuGrid(
@@ -899,6 +960,8 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                         selectedCell = selectedCell,
                         onCellSelected = { r, c -> viewModel.selectCell(r, c) },
                         isPaused = isPaused,
+                        disableGridHelpers = disableGridHelpers,
+                        hideLastRow = hideLastRow,
                         modifier = Modifier.padding(horizontal = 4.dp)
                     )
                 }
@@ -1328,6 +1391,8 @@ fun ArenaScreenTab(viewModel: SudokuViewModel) {
     val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
     val fastestTimes by viewModel.fastestCompletionTimes.collectAsStateWithLifecycle()
     val isRefreshingFastest by viewModel.isFetchingFastestTimes.collectAsStateWithLifecycle()
+    val disableGridHelpers by viewModel.disableGridHelperLayers.collectAsStateWithLifecycle()
+    val hideLastRow by viewModel.hideLastRowNumbers.collectAsStateWithLifecycle()
 
     var showCertificateDialog by remember { mutableStateOf(false) }
     var certificateNameInput by remember { mutableStateOf("") }
@@ -1366,6 +1431,10 @@ fun ArenaScreenTab(viewModel: SudokuViewModel) {
             onPvpWithdraw = { viewModel.withdrawPvpMatch() },
             onPvpToggleEraseMode = { viewModel.togglePvpEraseMode() },
             onSendPvpChatMessage = { message -> viewModel.sendPvpChatMessage(message) },
+            disableGridHelpers = disableGridHelpers,
+            hideLastRow = hideLastRow,
+            onToggleDisableGridHelpers = { viewModel.toggleDisableGridHelperLayers() },
+            onToggleHideLastRow = { viewModel.toggleHideLastRowNumbers() },
             onClaimPvpCertificate = { size, diff, duration, speed, focus, percentile ->
                 pvpGridSize = size
                 pvpDifficultyLabel = diff

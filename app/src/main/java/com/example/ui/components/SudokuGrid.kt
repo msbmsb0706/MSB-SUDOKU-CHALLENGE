@@ -37,6 +37,8 @@ fun SudokuGrid(
     selectedCell: Pair<Int, Int>?,
     onCellSelected: (Int, Int) -> Unit,
     isPaused: Boolean,
+    disableGridHelpers: Boolean = false,
+    hideLastRow: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val size = if (grid.size == 16) 4 else 9
@@ -86,9 +88,9 @@ fun SudokuGrid(
                             isPaused -> MaterialTheme.colorScheme.surfaceVariant
                             isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.55f) // Vivid focus active cell
                             cell.isError -> Color(0xFFFFCDD2) // Crimson error highlight
-                            isMatchingValue -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.45f) // Distinct highlight for identical digits
-                            isSameRowOrCol -> MaterialTheme.colorScheme.primary.copy(alpha = 0.28f) // Highly visible themed lane crosshair highlight
-                            isSameSquare -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f) // High-contrast square sub-box accent
+                            !disableGridHelpers && isMatchingValue -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.45f) // Distinct highlight for identical digits
+                            !disableGridHelpers && isSameRowOrCol -> MaterialTheme.colorScheme.primary.copy(alpha = 0.28f) // Highly visible themed lane crosshair highlight
+                            !disableGridHelpers && isSameSquare -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f) // High-contrast square sub-box accent
                             else -> defaultBg
                         }
 
@@ -122,6 +124,7 @@ fun SudokuGrid(
                         ) {
                             if (!isPaused) {
                                 if (cell.value > 0) {
+                                    val isHiddenDigit = hideLastRow && r == size - 1
                                     val textColor = when {
                                         cell.isClue -> MaterialTheme.colorScheme.onSurface
                                         cell.isError -> MaterialTheme.colorScheme.error
@@ -130,9 +133,9 @@ fun SudokuGrid(
                                     val fontWeight = if (cell.isClue) FontWeight.Bold else FontWeight.Medium
 
                                     Text(
-                                        text = cell.value.toString(),
-                                        color = textColor,
-                                        fontWeight = fontWeight,
+                                        text = if (isHiddenDigit) "?" else cell.value.toString(),
+                                        color = if (isHiddenDigit) Color(0xFFFF9800) else textColor,
+                                        fontWeight = if (isHiddenDigit) FontWeight.Black else fontWeight,
                                         fontSize = if (size == 4) 24.sp else 20.sp,
                                         textAlign = TextAlign.Center
                                     )

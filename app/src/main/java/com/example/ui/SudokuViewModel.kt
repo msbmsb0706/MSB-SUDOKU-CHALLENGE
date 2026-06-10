@@ -35,6 +35,22 @@ class SudokuViewModel(
         prefs.edit().putString("selected_theme", themeName).apply()
     }
 
+    // --- Grid Render Customizations ---
+    val disableGridHelperLayers = MutableStateFlow(prefs.getBoolean("disable_grid_helper_layers", false))
+    val hideLastRowNumbers = MutableStateFlow(prefs.getBoolean("hide_last_row_numbers", false))
+
+    fun toggleDisableGridHelperLayers() {
+        val newValue = !disableGridHelperLayers.value
+        disableGridHelperLayers.value = newValue
+        prefs.edit().putBoolean("disable_grid_helper_layers", newValue).apply()
+    }
+
+    fun toggleHideLastRowNumbers() {
+        val newValue = !hideLastRowNumbers.value
+        hideLastRowNumbers.value = newValue
+        prefs.edit().putBoolean("hide_last_row_numbers", newValue).apply()
+    }
+
     // --- Screen Settings ---
     var activeTab = MutableStateFlow(0) // 0: Play, 1: Competitive Arena, 2: Reward Dashboard
 
