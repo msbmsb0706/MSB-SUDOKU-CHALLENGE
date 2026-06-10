@@ -1307,6 +1307,8 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                         }
                     },
                     expectedCertificatePassword = userProfile?.certificatePassword ?: "",
+                    linkedInUrl = userProfile?.linkedInUrl ?: "",
+                    instagramUrl = userProfile?.instagramUrl ?: "",
                     onClose = { showCertificateDialog = false }
                 )
             }
@@ -1361,6 +1363,9 @@ fun ArenaScreenTab(viewModel: SudokuViewModel) {
             onPvpNumberEntered = { number -> viewModel.enterPvpNumber(number) },
             onPvpClearCell = { viewModel.clearPvpCell() },
             onSendSocialNudge = { platform -> viewModel.sendSocialNudge(platform) },
+            onPvpWithdraw = { viewModel.withdrawPvpMatch() },
+            onPvpToggleEraseMode = { viewModel.togglePvpEraseMode() },
+            onSendPvpChatMessage = { message -> viewModel.sendPvpChatMessage(message) },
             onClaimPvpCertificate = { size, diff, duration, speed, focus, percentile ->
                 pvpGridSize = size
                 pvpDifficultyLabel = diff
@@ -1399,6 +1404,8 @@ fun ArenaScreenTab(viewModel: SudokuViewModel) {
                     else -> "UN"
                 },
                 expectedCertificatePassword = userProfile?.certificatePassword ?: "",
+                linkedInUrl = userProfile?.linkedInUrl ?: "",
+                instagramUrl = userProfile?.instagramUrl ?: "",
                 onClose = { showCertificateDialog = false }
             )
         }
@@ -1687,6 +1694,8 @@ fun WinningCertificateOverlay(
     globalPercentile: Double,
     countryCode: String,
     expectedCertificatePassword: String = "",
+    linkedInUrl: String = "",
+    instagramUrl: String = "",
     onClose: () -> Unit
 ) {
     val context = LocalContext.current
@@ -2883,12 +2892,17 @@ fun WinningCertificateOverlay(
                     val rankStr = String.format(Locale.getDefault(), "%.3f", currentTemplate.globalPercentile)
 
                     val makeSharePost: (String) -> String = { platform ->
+                        val verificationTag = when (platform) {
+                            "LinkedIn" -> if (linkedInUrl.isNotBlank()) " [Verified Professional Solver: $linkedInUrl]" else ""
+                            "Instagram" -> if (instagramUrl.isNotBlank()) " [Verified Athlete Profile: @$instagramUrl]" else ""
+                            else -> ""
+                        }
                         when (platform) {
-                            "LinkedIn" -> "I am proud to share my official Graduation Certificate for the " + currentTemplate.matchTitle.uppercase() + "! I completed the " + currentTemplate.gridSize + "x" + currentTemplate.gridSize + " matrix on " + currentTemplate.difficulty.uppercase() + " level in " + timeStr + " with an AI-certified synaptic speed of " + speedStr + "Hz (Top " + rankStr + "% globally). Powered by MSB Creative Studios! [Verification ID: MSB-" + (System.currentTimeMillis() % 100000) + "]"
+                            "LinkedIn" -> "I am proud to share my official Graduation Certificate for the " + currentTemplate.matchTitle.uppercase() + "! I completed the " + currentTemplate.gridSize + "x" + currentTemplate.gridSize + " matrix on " + currentTemplate.difficulty.uppercase() + " level in " + timeStr + " with an AI-certified synaptic speed of " + speedStr + "Hz (Top " + rankStr + "% globally).$verificationTag Powered by MSB Creative Studios! [Verification ID: MSB-" + (System.currentTimeMillis() % 100000) + "]"
                             "Resume" -> "MSB Advanced Cognitive Sudoku Graduate - " + currentTemplate.matchTitle + " (Top " + rankStr + "% Global Rank, Synaptic Speed: " + speedStr + "Hz, Focus Rating: " + focusStr + "%, Difficulty: " + currentTemplate.difficulty.uppercase() + "). Awarded by MSB Creative Studios."
-                            "Twitter" -> "Shattered the cognitive record on " + currentTemplate.matchTitle.uppercase() + "! solved " + currentTemplate.gridSize + "x" + currentTemplate.gridSize + " (" + currentTemplate.difficulty.uppercase() + ") in " + timeStr + ". Synaptic speed: " + speedStr + "Hz! 🧠 Powered by @MSBCreative #Sudoku #CognitiveElite"
-                            "Facebook" -> "Cerebral graduation unlocked! Just earned my certified Cognitive Sudoku Master credential for the " + currentTemplate.matchTitle + " from MSB Creative Studios. Solved in " + timeStr + ", rank: TOP " + rankStr + "%! 👑 #MSBSudoku #CognitiveChallenge"
-                            else -> "Graduated from " + currentTemplate.matchTitle + "! Time: " + timeStr + ", Speed: " + speedStr + "Hz. Powered by MSB Creative Studios."
+                            "Twitter" -> "Shattered the cognitive record on " + currentTemplate.matchTitle.uppercase() + "! solved " + currentTemplate.gridSize + "x" + currentTemplate.gridSize + " (" + currentTemplate.difficulty.uppercase() + ") in " + timeStr + ". Synaptic speed: " + speedStr + "Hz! 🧠$verificationTag Powered by @MSBCreative #Sudoku #CognitiveElite"
+                            "Facebook" -> "Cerebral graduation unlocked! Just earned my certified Cognitive Sudoku Master credential for the " + currentTemplate.matchTitle + " from MSB Creative Studios. Solved in " + timeStr + ", rank: TOP " + rankStr + "%! 👑$verificationTag #MSBSudoku #CognitiveChallenge"
+                            else -> "Graduated from " + currentTemplate.matchTitle + "! Time: " + timeStr + ", Speed: " + speedStr + "Hz.$verificationTag Powered by MSB Creative Studios."
                         }
                     }
 

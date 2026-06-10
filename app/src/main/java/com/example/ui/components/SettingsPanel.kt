@@ -55,6 +55,8 @@ fun SettingsPanel(
     var connectingPlatform by remember { mutableStateOf<String?>(null) }
     var inputToConnect by remember { mutableStateOf("") }
     var feedbackMessage by remember { mutableStateOf("") }
+    var showOAuthPlatform by remember { mutableStateOf<String?>(null) }
+    var suggestedHandleForOAuth by remember { mutableStateOf("") }
 
     LaunchedEffect(connectingPlatform) {
         val platform = connectingPlatform
@@ -634,24 +636,21 @@ fun SettingsPanel(
                             OutlinedTextField(
                                 value = linkedInInput,
                                 onValueChange = { linkedInInput = it },
-                                placeholder = { Text("LinkedIn Username / Handle", fontSize = 12.sp) },
+                                placeholder = { Text("LinkedIn Handle (optional)", fontSize = 12.sp) },
                                 singleLine = true,
                                 modifier = Modifier.weight(1f).height(48.dp),
                                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
                             )
                             Button(
                                 onClick = {
-                                    if (linkedInInput.isNotBlank()) {
-                                        inputToConnect = linkedInInput
-                                        connectingPlatform = "LinkedIn"
-                                        linkedInInput = ""
-                                    }
+                                    suggestedHandleForOAuth = if (linkedInInput.isNotBlank()) linkedInInput else (userProfile?.username ?: "MSB_Grandmaster")
+                                    showOAuthPlatform = "LinkedIn"
+                                    linkedInInput = ""
                                 },
-                                enabled = connectingPlatform == null && linkedInInput.isNotBlank(),
                                 modifier = Modifier.height(48.dp),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
-                                Text("LINK", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                Text("OAUTH LINK", fontWeight = FontWeight.Bold, fontSize = 11.sp)
                             }
                         }
                     }
@@ -702,24 +701,21 @@ fun SettingsPanel(
                             OutlinedTextField(
                                 value = facebookInput,
                                 onValueChange = { facebookInput = it },
-                                placeholder = { Text("Profile Link / Name", fontSize = 12.sp) },
+                                placeholder = { Text("Profile Link / Name (optional)", fontSize = 12.sp) },
                                 singleLine = true,
                                 modifier = Modifier.weight(1f).height(48.dp),
                                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
                             )
                             Button(
                                 onClick = {
-                                    if (facebookInput.isNotBlank()) {
-                                        inputToConnect = facebookInput
-                                        connectingPlatform = "Facebook"
-                                        facebookInput = ""
-                                    }
+                                    suggestedHandleForOAuth = if (facebookInput.isNotBlank()) facebookInput else (userProfile?.username ?: "MSB_Grandmaster")
+                                    showOAuthPlatform = "Facebook"
+                                    facebookInput = ""
                                 },
-                                enabled = connectingPlatform == null && facebookInput.isNotBlank(),
                                 modifier = Modifier.height(48.dp),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
-                                Text("LINK", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                Text("OAUTH LINK", fontWeight = FontWeight.Bold, fontSize = 11.sp)
                             }
                         }
                     }
@@ -756,7 +752,7 @@ fun SettingsPanel(
 
                     if (isInstagramLinked) {
                         Text(
-                            text = "Connected Directory: @${userProfile?.instagramUrl}",
+                            text = "Connected Directory: ${userProfile?.instagramUrl}",
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFFE1306C)
@@ -770,24 +766,21 @@ fun SettingsPanel(
                             OutlinedTextField(
                                 value = instagramInput,
                                 onValueChange = { instagramInput = it },
-                                placeholder = { Text("Instagram @username", fontSize = 12.sp) },
+                                placeholder = { Text("Instagram @username (optional)", fontSize = 12.sp) },
                                 singleLine = true,
                                 modifier = Modifier.weight(1f).height(48.dp),
                                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
                             )
                             Button(
                                 onClick = {
-                                    if (instagramInput.isNotBlank()) {
-                                        inputToConnect = instagramInput
-                                        connectingPlatform = "Instagram"
-                                        instagramInput = ""
-                                    }
+                                    suggestedHandleForOAuth = if (instagramInput.isNotBlank()) instagramInput else (userProfile?.username ?: "MSB_Grandmaster")
+                                    showOAuthPlatform = "Instagram"
+                                    instagramInput = ""
                                 },
-                                enabled = connectingPlatform == null && instagramInput.isNotBlank(),
                                 modifier = Modifier.height(48.dp),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
-                                Text("LINK", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                Text("OAUTH LINK", fontWeight = FontWeight.Bold, fontSize = 11.sp)
                             }
                         }
                     }
@@ -1263,6 +1256,18 @@ fun SettingsPanel(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 96.dp)
+        )
+    }
+
+    showOAuthPlatform?.let { plat ->
+        OAuthHandshakeDialog(
+            platform = plat,
+            suggestedHandle = suggestedHandleForOAuth,
+            onDismiss = { showOAuthPlatform = null },
+            onSuccess = { authenticatedHandle ->
+                onConnectSocial(plat, authenticatedHandle)
+                showOAuthPlatform = null
+            }
         )
     }
 }

@@ -1026,14 +1026,16 @@ fun AuthRegisterScreen(
                                             text = "1. Acceptance of Terms\n" +
                                                    "By registering or logging in via Direct Google SSO, you agree to the regulatory policies of MSB SUDOKU CHALLENGE POWERED BY MSB CREATIVE STUDIOS.\n\n" +
                                                    "2. Authenticity & Fair Play\n" +
-                                                   "Speed solving, tournament logs, offline highscores, and PlayGold Points (PGP) accumulated must be obtained without visual cheats or external automation engines to protect fair play.",
+                                                   "Speed solving, tournament logs, offline highscores, and PlayGold Points (PGP) accumulated must be obtained without visual cheats or external automation engines to protect fair play.\n\n" +
+                                                   "3. Sandbox Social Integrations\n" +
+                                                   "Integrations with third-party social networks (LinkedIn, Facebook, Instagram) use official sandboxed OAuth 2.0 pathways. Users agree to execute authorizations inside secure sandboxed frames.",
                                             fontSize = 11.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                     1 -> {
                                         Text(
-                                            text = "PRIVACY POLICY",
+                                            text = "PRIVACY POLICY Statement",
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 12.sp,
                                             color = MaterialTheme.colorScheme.primary
@@ -1042,16 +1044,16 @@ fun AuthRegisterScreen(
                                             text = "1. Data Isolation & Security\n" +
                                                    "All user details, password hashes, security challenge responses, and regional highscores reside inside localized SQLite registries. No remote user profiling is initiated.\n\n" +
                                                    "2. Direct Google SSO privacy\n" +
-                                                   "One-tap Google SSO bypasses password entry securely. If Two-Factor secure OTP is selected, a administrative simulated SMS flow is processed to protect registrations from breach.\n\n" +
-                                                   "3. Share Anchors\n" +
-                                                   "Custom URLs for LinkedIn, Facebook, and Instagram are securely maintained to render achievement certificate overlays and share cards.",
+                                                   "One-tap Google SSO bypasses password entry securely. If Two-Factor secure OTP is selected, an administrative simulated SMS flow is processed to protect registrations from breach.\n\n" +
+                                                   "3. Cryptographically Signed OAuth Portals\n" +
+                                                   "Our LinkedIn, Facebook, and Instagram OAuth portals utilize real-time browser sandbox frames. We never transmit or log password strings; we only store the certified profile handle returned via back-channel authorization code exchange to render verified milestones alongside leaderboards.",
                                             fontSize = 11.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                     2 -> {
                                         Text(
-                                            text = "USER AGREEMENT",
+                                            text = "USER AGREEMENT & DATA POLICY",
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 12.sp,
                                             color = MaterialTheme.colorScheme.primary
@@ -1060,7 +1062,9 @@ fun AuthRegisterScreen(
                                             text = "1. Skill Standing & Honors\n" +
                                                    "Accumulated PlayGold Points (PGP) represent mathematical resolution stats, verified solving accuracy and highscores under absolute user ownership and control as elite cognitive markers.\n\n" +
                                                    "2. Competitive Latency Agreement\n" +
-                                                   "Multiplayer lobbies utilize fair ping-matching metrics. Competitive interactions (sabotage, swaps, time penalties) are rate-limited to maintain espost sportsmanship.",
+                                                   "Multiplayer lobbies utilize fair ping-matching metrics. Competitive interactions (sabotage, swaps, time penalties) are rate-limited to maintain espost sportsmanship.\n\n" +
+                                                   "3. Social Credentials Revocation\n" +
+                                                   "In accordance with updated user policy directives of LinkedIn, Facebook, and Instagram, users have the absolute right to unlink, clear, or revoke consent for any linked social profile handle instantly through the system settings panel.",
                                             fontSize = 11.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )

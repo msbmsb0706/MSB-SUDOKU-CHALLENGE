@@ -17,6 +17,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -55,12 +58,16 @@ fun LeaderboardScreen(
     onPvpNumberEntered: (Int) -> Unit = { _ -> },
     onPvpClearCell: () -> Unit = {},
     onSendSocialNudge: (String) -> Unit = {},
+    onPvpWithdraw: () -> Unit = {},
+    onPvpToggleEraseMode: () -> Unit = {},
+    onSendPvpChatMessage: (String) -> Unit = {},
     onClaimPvpCertificate: (Int, String, Long, Double, Double, Double) -> Unit = { _, _, _, _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
     var selectedSubTab by remember { mutableStateOf(0) } // 0: Points Ladder, 1: Fastest Times (Firestore)
     var activeArenaMode by remember { mutableStateOf("One-to-One") } // "One-to-One" vs "Group Challenge" vs "Tournament Cup"
     var pvpGridSizeOption by remember { mutableIntStateOf(9) } // Default 9x9, options 4x4 or 9x9
+    var customChatMessage by remember { mutableStateOf("") }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -489,6 +496,57 @@ fun LeaderboardScreen(
                                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                                             )
                                         }
+
+                                        if (userProfile != null) {
+                                            if (!userProfile.linkedInUrl.isNullOrBlank()) {
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Surface(
+                                                    color = Color(0xFF0077B5),
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    modifier = Modifier.padding(2.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "In",
+                                                        color = Color.White,
+                                                        fontSize = 7.sp,
+                                                        fontWeight = FontWeight.Black,
+                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
+                                            if (!userProfile.facebookUrl.isNullOrBlank()) {
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Surface(
+                                                    color = Color(0xFF3B5998),
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    modifier = Modifier.padding(2.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "FB",
+                                                        color = Color.White,
+                                                        fontSize = 7.sp,
+                                                        fontWeight = FontWeight.Black,
+                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
+                                            if (!userProfile.instagramUrl.isNullOrBlank()) {
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Surface(
+                                                    color = Color(0xFFE1306C),
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    modifier = Modifier.padding(2.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "IG",
+                                                        color = Color.White,
+                                                        fontSize = 7.sp,
+                                                        fontWeight = FontWeight.Black,
+                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                                 Text(
@@ -808,24 +866,23 @@ fun LeaderboardScreen(
             enter = fadeIn(),
             exit = fadeOut()
         ) {
+            val isConflict = searchState is MatchmakingState.SolvingConflict
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.85f))
-                    .padding(24.dp),
+                    .padding(if (isConflict) 0.dp else 24.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight(),
-                    shape = RoundedCornerShape(24.dp),
+                    modifier = if (isConflict) Modifier.fillMaxSize() else Modifier.fillMaxWidth().wrapContentHeight(),
+                    shape = RoundedCornerShape(if (isConflict) 0.dp else 24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
+                            .fillMaxSize()
+                            .padding(if (isConflict) 12.dp else 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         when (searchState) {
@@ -890,18 +947,38 @@ fun LeaderboardScreen(
                             }
 
                             is MatchmakingState.SolvingConflict -> {
-                                Text(
-                                    text = "SUDOKU MULTIPLAYER RIVALRY",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.secondary,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Speed Solving Board Active (${searchState.pvpGridSize}x${searchState.pvpGridSize})",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                // Full screen Header with Withdraw button
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = "SUDOKU MULTIPLAYER RIVALRY",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.secondary,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "Speed Solving Board Active (${searchState.pvpGridSize}x${searchState.pvpGridSize})",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    Button(
+                                        onClick = onPvpWithdraw,
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.error,
+                                            contentColor = MaterialTheme.colorScheme.onError
+                                        ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.height(32.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                    ) {
+                                        Text("WITHDRAW 🏳️", fontSize = 9.sp, fontWeight = FontWeight.Black)
+                                    }
+                                }
                                 Spacer(modifier = Modifier.height(4.dp))
 
                                 // Ticking clock showing seconds remaining under different speeds
@@ -951,51 +1028,82 @@ fun LeaderboardScreen(
 
                                 Spacer(modifier = Modifier.height(6.dp))
 
-                                // Quick digits selection pad + clear button
+                                // Eraser Tool Selection + Keyboard
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    val size = searchState.pvpGridSize
-                                    for (num in 1..size) {
+                                    // 1. Interactive Eraser mode Button
+                                    Button(
+                                        onClick = onPvpToggleEraseMode,
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (searchState.eraseModeActive) Color(0xFFC2185B) else MaterialTheme.colorScheme.secondaryContainer,
+                                            contentColor = if (searchState.eraseModeActive) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
+                                        ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1.3f).height(38.dp),
+                                        contentPadding = PaddingValues(horizontal = 6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Eraser Toggle",
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = if (searchState.eraseModeActive) "ERASING" else "ERASE MODE",
+                                            fontSize = 8.5.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+
+                                    // 2. Standard Digits 1 to size + CLEAR Button
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                        modifier = Modifier.weight(3f)
+                                    ) {
+                                        val size = searchState.pvpGridSize
+                                        for (num in 1..size) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .aspectRatio(1f)
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                                    .clickable { onPvpNumberEntered(num) },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = num.toString(),
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                )
+                                            }
+                                        }
+                                        // Specific Clear Button
                                         Box(
                                             modifier = Modifier
-                                                .weight(1f)
+                                                .weight(1.3f)
                                                 .aspectRatio(1f)
                                                 .clip(RoundedCornerShape(6.dp))
-                                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                                .clickable { onPvpNumberEntered(num) },
+                                                .background(MaterialTheme.colorScheme.errorContainer)
+                                                .clickable { onPvpClearCell() },
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
-                                                text = num.toString(),
-                                                style = MaterialTheme.typography.bodyMedium,
+                                                text = "CLEAR",
+                                                style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.Black,
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                fontSize = 7.5.sp,
+                                                color = MaterialTheme.colorScheme.onErrorContainer
                                             )
                                         }
                                     }
-                                    // Clear button
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1.3f)
-                                            .aspectRatio(1f)
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(MaterialTheme.colorScheme.errorContainer)
-                                            .clickable { onPvpClearCell() },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "CLEAR",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Black,
-                                            fontSize = 8.sp,
-                                            color = MaterialTheme.colorScheme.onErrorContainer
-                                        )
-                                    }
                                 }
 
-                                Spacer(modifier = Modifier.height(10.dp))
+                                Spacer(modifier = Modifier.height(6.dp))
 
                                 // Real-time chat logs
                                 Column(
@@ -1013,7 +1121,7 @@ fun LeaderboardScreen(
                                         letterSpacing = 0.5.sp
                                     )
                                     Spacer(modifier = Modifier.height(2.dp))
-                                    Box(modifier = Modifier.fillMaxSize()) {
+                                    Box(modifier = Modifier.weight(1f)) {
                                         androidx.compose.foundation.lazy.LazyColumn(
                                             modifier = Modifier.fillMaxSize(),
                                             verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -1028,6 +1136,46 @@ fun LeaderboardScreen(
                                                 )
                                             }
                                         }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                // Custom text messages entry chat box
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = customChatMessage,
+                                        onValueChange = { customChatMessage = it },
+                                        placeholder = { Text("Send quick lobby rivalry chat text...", fontSize = 9.sp) },
+                                        singleLine = true,
+                                        modifier = Modifier.weight(1f).height(46.dp),
+                                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
+                                        )
+                                    )
+                                    IconButton(
+                                        onClick = {
+                                            if (customChatMessage.isNotBlank()) {
+                                                onSendPvpChatMessage(customChatMessage)
+                                                customChatMessage = ""
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Send,
+                                            contentDescription = "Send Chat Message",
+                                            tint = MaterialTheme.colorScheme.onPrimary,
+                                            modifier = Modifier.size(14.dp)
+                                        )
                                     }
                                 }
 

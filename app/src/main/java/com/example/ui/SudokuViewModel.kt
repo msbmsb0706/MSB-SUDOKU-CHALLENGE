@@ -1210,7 +1210,87 @@ class SudokuViewModel(
     fun selectPvpCell(row: Int, col: Int) {
         val current = searchState.value
         if (current is MatchmakingState.SolvingConflict) {
-            searchState.value = current.copy(pvpSelectedCell = Pair(row, col))
+            if (current.eraseModeActive) {
+                val size = current.pvpGridSize
+                val currentCells = current.pvpGrid.toMutableList()
+                val index = row * size + col
+                val cell = currentCells[index]
+                if (!cell.isClue) {
+                    currentCells[index] = cell.copy(value = 0, isError = false)
+                    searchState.value = current.copy(
+                        pvpGrid = currentCells,
+                        pvpSelectedCell = Pair(row, col)
+                    )
+                }
+            } else {
+                searchState.value = current.copy(pvpSelectedCell = Pair(row, col))
+            }
+        }
+    }
+
+    fun togglePvpEraseMode() {
+        val current = searchState.value
+        if (current is MatchmakingState.SolvingConflict) {
+            searchState.value = current.copy(eraseModeActive = !current.eraseModeActive)
+        }
+    }
+
+    fun sendPvpChatMessage(message: String) {
+        val current = searchState.value
+        if (current is MatchmakingState.SolvingConflict && message.isNotBlank()) {
+            val user = userProfile.value
+            val username = user?.username ?: "You"
+            val updatedChat = current.liveChatLog.toMutableList()
+            updatedChat.add("$username: $message")
+            
+            val opponents = current.opponentProgresses.keys.toList()
+            val opponentName = if (opponents.isNotEmpty()) opponents.random() else "Rival Solver"
+            val responses = listOf(
+                "Good move! But I'm faster! ⚡",
+                "Nice one, let's see who wins! 🧠",
+                "Haha, not so fast! Slashed you! 💥",
+                "Almost there, keep going! 😉",
+                "Sudoku speed master here, no match for me!",
+                "Wow, that was clean!"
+            )
+            val randomReply = responses.random()
+            
+            searchState.value = current.copy(liveChatLog = updatedChat.toList())
+            
+            viewModelScope.launch {
+                delay(1200)
+                val currentNow = searchState.value
+                if (currentNow is MatchmakingState.SolvingConflict) {
+                    val finalChat = currentNow.liveChatLog.toMutableList()
+                    finalChat.add("$opponentName: $randomReply")
+                    searchState.value = currentNow.copy(liveChatLog = finalChat.toList())
+                }
+            }
+        }
+    }
+
+    fun withdrawPvpMatch() {
+        val current = searchState.value
+        if (current is MatchmakingState.SolvingConflict) {
+            val size = current.pvpGridSize
+            val totalMatchLimit = if (size == 4) 60 else 180
+            val elapsedSecs = maxOf(5, totalMatchLimit - current.secondsLeft)
+            
+            val opponents = current.opponentProgresses.keys.firstOrNull() ?: "Rival Solver"
+            
+            recentMatchResult.value = MatchResult(
+                isWon = false,
+                solveTimeSelf = elapsedSecs,
+                solveTimeOpponent = elapsedSecs - 5,
+                pointsDelta = -15,
+                playGoldAwarded = 0,
+                gemsAwarded = 0,
+                opponentName = opponents,
+                size = size,
+                mistakes = current.pvpMistakes
+            )
+            
+            searchState.value = MatchmakingState.MatchFinished
         }
     }
 
@@ -1964,7 +2044,8 @@ sealed class MatchmakingState {
         val pvpSelectedCell: Pair<Int, Int>? = null,
         val pvpSolution: List<Int> = emptyList(),
         val liveChatLog: List<String> = emptyList(),
-        val pvpMistakes: Int = 0
+        val pvpMistakes: Int = 0,
+        val eraseModeActive: Boolean = false
     ) : MatchmakingState()
     object MatchFinished : MatchmakingState()
     data class Error(val message: String) : MatchmakingState()
