@@ -165,13 +165,44 @@ object FirestoreClient {
             region = region,
             timestamp = System.currentTimeMillis()
         )
+        
         synchronized(localRecords) {
             localRecords.removeAll { it.username == username && it.difficulty == difficulty && it.timeElapsedSeconds >= timeSeconds }
             if (localRecords.none { it.username == username && it.difficulty == difficulty && it.timeElapsedSeconds <= timeSeconds }) {
                 localRecords.add(newRecord)
             }
         }
-        Log.d(TAG, "submitCompletionTime: Bypassed external API. Saved new record to high-speed local simulated database: $username - $timeSeconds seconds.")
+
+        if (isUsingPlaceholder()) {
+            Log.d(TAG, "submitCompletionTime: Bypassed remote API due to placeholder credentials. Saved locally: $username ($timeSeconds s)")
+            return@withContext true
+        }
+
+        try {
+            val projectId = BuildConfig.FIREBASE_PROJECT_ID
+            val apiKey = BuildConfig.FIREBASE_API_KEY
+            val request = FirestoreWriteRequest(
+                fields = FirestoreFields(
+                    username = FirestoreValue(stringValue = username),
+                    timeElapsed = FirestoreValue(integerValue = timeSeconds.toString()),
+                    difficulty = FirestoreValue(stringValue = difficulty),
+                    countryFlag = FirestoreValue(stringValue = countryFlag),
+                    countryName = FirestoreValue(stringValue = countryName),
+                    region = FirestoreValue(stringValue = region),
+                    timestamp = FirestoreValue(integerValue = System.currentTimeMillis().toString())
+                )
+            )
+            api.submitTime(
+                projectId = projectId,
+                collectionId = COLLECTION_ID,
+                apiKey = apiKey,
+                request = request
+            )
+            Log.d(TAG, "submitCompletionTime remote request succeeded: $username - $timeSeconds seconds.")
+        } catch (e: Exception) {
+            Log.e(TAG, "submitCompletionTime remote request failed: ${e.message}. Retained local copy.", e)
+        }
+
         return@withContext true
     }
 
@@ -180,8 +211,83 @@ object FirestoreClient {
      * Incorporates automatic fallback in case of missing keys or network failure to guarantee zero crashes.
      */
     suspend fun getGlobalTop10Fastest(): List<GlobalFastestPlayer> = withContext(Dispatchers.IO) {
-        Log.d(TAG, "getGlobalTop10Fastest: Bypassed external API. Pulling elite local records.")
-        val combined = (getEliteFallbackLeaderboard() + localRecords)
+        val eliteFallback = getEliteFallbackLeaderboard()
+        
+        if (isUsingPlaceholder()) {
+            Log.d(TAG, "getGlobalTop10Fastest: Placeholder config. Returning local combined records.")
+            val combined = (eliteFallback + localRecords)
+                .sortedBy { it.timeElapsedSeconds }
+                .distinctBy { it.username to it.difficulty }
+                .take(10)
+            return@withContext combined
+        }
+
+        try {
+            val projectId = BuildConfig.FIREBASE_PROJECT_ID
+            val apiKey = BuildConfig.FIREBASE_API_KEY
+            val requestBody = FirestoreQueryRequest(
+                structuredQuery = StructuredQuery(
+                    from = listOf(CollectionSelector(collectionId = COLLECTION_ID)),
+                    orderBy = listOf(OrderSpec(field = FieldReference(fieldPath = "timeElapsed"), direction = "ASCENDING")),
+                    limit = 10
+                )
+            )
+
+            val apiResponse = api.getLeaderboard(
+                projectId = projectId,
+                apiKey = apiKey,
+                request = requestBody
+            )
+
+            val parsedList = mutableListOf<GlobalFastestPlayer>()
+            apiResponse.forEach { responseItem ->
+                val doc = responseItem.document
+                val fields = doc?.fields
+                if (fields != null) {
+                    val uName = fields.username?.stringValue ?: ""
+                    val tSec = fields.timeElapsed?.integerValue?.toLongOrNull() 
+                        ?: fields.timeElapsed?.stringValue?.toLongOrNull() 
+                        ?: 999L
+                    val diff = fields.difficulty?.stringValue ?: "MEDIUM"
+                    val cFlag = fields.countryFlag?.stringValue ?: ""
+                    val cName = fields.countryName?.stringValue ?: ""
+                    val reg = fields.region?.stringValue ?: ""
+                    val ts = fields.timestamp?.integerValue?.toLongOrNull() 
+                        ?: fields.timestamp?.stringValue?.toLongOrNull() 
+                        ?: System.currentTimeMillis()
+
+                    if (uName.isNotBlank()) {
+                        parsedList.add(
+                            GlobalFastestPlayer(
+                                username = uName,
+                                timeElapsedSeconds = tSec,
+                                difficulty = diff,
+                                countryFlag = cFlag,
+                                countryName = cName,
+                                region = reg,
+                                timestamp = ts
+                            )
+                        )
+                    }
+                }
+            }
+
+            // Combine parsed list with local records
+            val finalCombined = (parsedList + localRecords)
+                .sortedBy { it.timeElapsedSeconds }
+                .distinctBy { it.username to it.difficulty }
+                .take(10)
+
+            if (finalCombined.isNotEmpty()) {
+                Log.d(TAG, "getGlobalTop10Fastest: Success drawing ${finalCombined.size} merged server-local records.")
+                return@withContext finalCombined
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getGlobalTop10Fastest: Remote API invocation error: ${e.message}. Resorting to fallback database values.", e)
+        }
+
+        // Return local fallback on any remote issue
+        val combined = (eliteFallback + localRecords)
             .sortedBy { it.timeElapsedSeconds }
             .distinctBy { it.username to it.difficulty }
             .take(10)

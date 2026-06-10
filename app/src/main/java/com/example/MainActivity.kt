@@ -1669,6 +1669,10 @@ fun WinningCertificateOverlay(
     var selectedTemplateIndex by remember { mutableStateOf(0) }
     val currentTemplate = templates[selectedTemplateIndex]
 
+    val certificateStyles = listOf("COSMIC_LUXURY", "CLASSIC_IVORY", "NEON_CYBER")
+    var selectedStyleIndex by remember { mutableStateOf(0) }
+    val currentStyle = certificateStyles[selectedStyleIndex]
+
     // Cognitive AI audit state parameters
     var aiEndorsementText by remember { mutableStateOf<String?>(null) }
     var isGeneratingEndorsement by remember { mutableStateOf(false) }
@@ -1730,7 +1734,8 @@ fun WinningCertificateOverlay(
                 globalPercentile = currentTemplate.globalPercentile,
                 aiEndorsement = aiEndorsementText,
                 countryCode = countryCode,
-                matchTitle = currentTemplate.matchTitle
+                matchTitle = currentTemplate.matchTitle,
+                designStyle = currentStyle
             )
             saveProgress = 1.0f
             kotlinx.coroutines.delay(150)
@@ -1762,7 +1767,8 @@ fun WinningCertificateOverlay(
                 globalPercentile = currentTemplate.globalPercentile,
                 aiEndorsement = aiEndorsementText,
                 countryCode = countryCode,
-                matchTitle = currentTemplate.matchTitle
+                matchTitle = currentTemplate.matchTitle,
+                designStyle = currentStyle
             )
             saveProgress = 1.0f
             kotlinx.coroutines.delay(150)
@@ -1892,6 +1898,60 @@ fun WinningCertificateOverlay(
                     )
                 }
 
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "DESIGN STYLE & CHASSIS CUSTOMIZATION:",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        certificateStyles.forEachIndexed { sIdx, styleName ->
+                            val isStyleSelected = selectedStyleIndex == sIdx
+                            val prettyStyleName = when(styleName) {
+                                "COSMIC_LUXURY" -> "⭐ COSMIC LUXURY"
+                                "CLASSIC_IVORY" -> "✒️ CLASSIC IVORY"
+                                "NEON_CYBER" -> "🌌 NEON CYBER"
+                                else -> styleName
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (isStyleSelected) Color(0xFFD4AF37) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                    )
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (isStyleSelected) Color(0xFFD4AF37) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .clickable { selectedStyleIndex = sIdx }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = prettyStyleName,
+                                    color = if (isStyleSelected) Color.Black else MaterialTheme.colorScheme.onSurface,
+                                    fontSize = 10.sp,
+                                    fontWeight = if (isStyleSelected) FontWeight.Black else FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
                 // Shaded Cognitive AI Status Alert Segment
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -1996,6 +2056,206 @@ fun WinningCertificateOverlay(
                     .replace("\n", " ")
                     .replace("\r", " ")
 
+                val jsBgColorCenter = when (currentStyle) {
+                    "NEON_CYBER" -> "#0d0f1a"
+                    "CLASSIC_IVORY" -> "#FAF6EE"
+                    else -> "#1c180d"
+                }
+                val jsBgColorEdge = when (currentStyle) {
+                    "NEON_CYBER" -> "#040409"
+                    "CLASSIC_IVORY" -> "#EEDBBA"
+                    else -> "#020202"
+                }
+                val jsOuterBorderColor = when (currentStyle) {
+                    "NEON_CYBER" -> "#FF007F"
+                    "CLASSIC_IVORY" -> "#800020"
+                    else -> "#D4AF37"
+                }
+                val jsInnerBorderColor = when (currentStyle) {
+                    "NEON_CYBER" -> "#00F0FF"
+                    "CLASSIC_IVORY" -> "#0D233A"
+                    else -> "#D4AF37"
+                }
+                val jsHeaderColor = when (currentStyle) {
+                    "NEON_CYBER" -> "#39FF14"
+                    "CLASSIC_IVORY" -> "#0D233A"
+                    else -> "#D4AF37"
+                }
+                val jsHeaderFont = when (currentStyle) {
+                    "NEON_CYBER" -> "bold 13px monospace"
+                    "CLASSIC_IVORY" -> "bold 14px Georgia, serif"
+                    else -> "bold 15px Georgia, serif"
+                }
+                val jsHeaderText = when (currentStyle) {
+                    "NEON_CYBER" -> "[ COGNITIVE SOLVER MATRIX SYSTEM OVERRIDE ]"
+                    "CLASSIC_IVORY" -> "★  COGNITIO ET RESOLUTIO LUX VESTRA  ★"
+                    else -> "★ ★ ★  COGNITIVE GRADUATED SOLVER  ★ ★ ★"
+                }
+                val jsTitleColor = when (currentStyle) {
+                    "NEON_CYBER" -> "#00F0FF"
+                    "CLASSIC_IVORY" -> "#800020"
+                    else -> "#FFFFFF"
+                }
+                val jsTitleFont = when (currentStyle) {
+                    "NEON_CYBER" -> "bold 22px monospace"
+                    "CLASSIC_IVORY" -> "bold 26px Georgia, serif"
+                    else -> "bold 24px sans-serif"
+                }
+                val jsTitleText = when (currentStyle) {
+                    "NEON_CYBER" -> "// CONG. ${currentTemplate.matchTitle.uppercase()}"
+                    else -> currentTemplate.matchTitle.uppercase()
+                }
+                val jsSubtitleColor = when (currentStyle) {
+                    "NEON_CYBER" -> "#FF007F"
+                    "CLASSIC_IVORY" -> "#0D233A"
+                    else -> "#D4AF37"
+                }
+                val jsSubtitleFont = when (currentStyle) {
+                    "NEON_CYBER" -> "bold 10px monospace"
+                    "CLASSIC_IVORY" -> "bold 10px Georgia, serif"
+                    else -> "bold 10px monospace"
+                }
+                val jsSubtitleText = when (currentStyle) {
+                    "NEON_CYBER" -> "NODE_RECORD // LEVEL COGNITIVE CONFR_DEGREE_SECURE"
+                    "CLASSIC_IVORY" -> "ACADEMIC TESTIMONIAL OF COGNITIVE LAUREATE"
+                    else -> "OFFICIAL CERTIFICATE OF COGNITIVE GRADUATION"
+                }
+                val jsIntroText = when (currentStyle) {
+                    "NEON_CYBER" -> ">> This terminal hereby registers logical confirmation for:"
+                    "CLASSIC_IVORY" -> "This solemn academic credential is formally awarded and recognized to"
+                    else -> "This prestigious cognitive credential is formally awarded to"
+                }
+                val jsIntroColor = when (currentStyle) {
+                    "NEON_CYBER" -> "#bebebe"
+                    "CLASSIC_IVORY" -> "#222222"
+                    else -> "#bebebe"
+                }
+                val jsIntroFont = when (currentStyle) {
+                    "NEON_CYBER" -> "11px monospace"
+                    "CLASSIC_IVORY" -> "italic 11px Georgia, serif"
+                    else -> "italic 12px Georgia, serif"
+                }
+                val jsUserNameColor = when (currentStyle) {
+                    "NEON_CYBER" -> "#FF007F"
+                    "CLASSIC_IVORY" -> "#0D233A"
+                    else -> "#FFD700"
+                }
+                val jsUserNameFont = when (currentStyle) {
+                    "NEON_CYBER" -> "bold 23px monospace"
+                    "CLASSIC_IVORY" -> "bold 24px Georgia, serif"
+                    else -> "bold 24px Georgia, serif"
+                }
+                val jsDescText1 = when (currentStyle) {
+                    "NEON_CYBER" -> "// CONTEXT: demonstrating flawless execution profiles, parsing complex multi-quadrant"
+                    "CLASSIC_IVORY" -> "for demonstrating exquisite logical precision, rapid matrix solving capacity, and elite performance"
+                    else -> "for exceptional logical precision, matrix resolution speed, and cognitive excellence"
+                }
+                val jsDescText2 = when (currentStyle) {
+                    "NEON_CYBER" -> "// matrices and achieving extreme synaptic computation metrics in real-time execution tests."
+                    "CLASSIC_IVORY" -> "within the rigorous intellectual specifications established by MSB Academy."
+                    else -> "within the boundaries of MSB Creative Studios challenge specifications."
+                }
+                val jsDescColor = when (currentStyle) {
+                    "NEON_CYBER" -> "#00F0FF"
+                    "CLASSIC_IVORY" -> "#222222"
+                    else -> "#9e9e9e"
+                }
+                val jsDescFont = when (currentStyle) {
+                    "NEON_CYBER" -> "9px monospace"
+                    "CLASSIC_IVORY" -> "10px Georgia, serif"
+                    else -> "9px sans-serif"
+                }
+                val jsAiHeaderColor = when (currentStyle) {
+                    "NEON_CYBER" -> "#39FF14"
+                    "CLASSIC_IVORY" -> "#800020"
+                    else -> "#4DE8F4"
+                }
+                val jsAiHeaderFont = when (currentStyle) {
+                    "NEON_CYBER" -> "bold 9px monospace"
+                    "CLASSIC_IVORY" -> "bold 9px Georgia, serif"
+                    else -> "bold 9px monospace"
+                }
+                val jsAiHeaderText = when (currentStyle) {
+                    "NEON_CYBER" -> "<< COGNITIVE AI LOGICAL CRITIQUE VERDICT_SECURE >>"
+                    "CLASSIC_IVORY" -> "✒️ ACADEMIC COGNITIVE AI ENDORSEMENT VERIFY:"
+                    else -> "⚡ INTEGRATED COGNITIVE AI CRITIQUE (HIGH PRECISION):"
+                }
+                val jsAiBodyColor = when (currentStyle) {
+                    "NEON_CYBER" -> "#39FF14"
+                    "CLASSIC_IVORY" -> "#222222"
+                    else -> "#FFFFFF"
+                }
+                val jsAiBodyFont = when (currentStyle) {
+                    "NEON_CYBER" -> "9px monospace"
+                    "CLASSIC_IVORY" -> "italic 9px Georgia, serif"
+                    else -> "italic 10px Georgia, serif"
+                }
+                val jsPanelBg = when (currentStyle) {
+                    "NEON_CYBER" -> "rgba(0, 240, 255, 0.05)"
+                    "CLASSIC_IVORY" -> "rgba(128, 0, 32, 0.04)"
+                    else -> "rgba(255, 255, 255, 0.02)"
+                }
+                val jsPanelStroke = when (currentStyle) {
+                    "NEON_CYBER" -> "#FF007F"
+                    "CLASSIC_IVORY" -> "#0D233A"
+                    else -> "rgba(212, 175, 55, 0.25)"
+                }
+                val jsMetricsLabelColor = when (currentStyle) {
+                    "NEON_CYBER" -> "#00F0FF"
+                    "CLASSIC_IVORY" -> "#800020"
+                    else -> "#D4AF37"
+                }
+                val jsMetricsLabelFont = when (currentStyle) {
+                    "NEON_CYBER" -> "bold 9px monospace"
+                    "CLASSIC_IVORY" -> "bold 9px Georgia, serif"
+                    else -> "bold 9px monospace"
+                }
+                val jsMetricsValColor = when (currentStyle) {
+                    "NEON_CYBER" -> "#FFFFFF"
+                    "CLASSIC_IVORY" -> "#222222"
+                    else -> "#FFFFFF"
+                }
+                val jsMetricsValFont = when (currentStyle) {
+                    "NEON_CYBER" -> "9px monospace"
+                    "CLASSIC_IVORY" -> "9px Georgia, serif"
+                    else -> "9px monospace"
+                }
+                val jsScoreColor = when (currentStyle) {
+                    "NEON_CYBER" -> "#39FF14"
+                    "CLASSIC_IVORY" -> "#800020"
+                    else -> "#FFD700"
+                }
+                val jsRankColor = when (currentStyle) {
+                    "NEON_CYBER" -> "#FF007F"
+                    "CLASSIC_IVORY" -> "#0D233A"
+                    else -> "#FF9800"
+                }
+                val jsSepColor = when (currentStyle) {
+                    "NEON_CYBER" -> "rgba(0, 240, 255, 0.2)"
+                    "CLASSIC_IVORY" -> "rgba(128, 0, 32, 0.2)"
+                    else -> "rgba(212, 175, 55, 0.15)"
+                }
+                val jsBrandColor = when (currentStyle) {
+                    "NEON_CYBER" -> "#FF007F"
+                    "CLASSIC_IVORY" -> "#800020"
+                    else -> "#FFD700"
+                }
+                val jsBrandText = when (currentStyle) {
+                    "NEON_CYBER" -> "[ CYBERNETIC COGNITIVE COMPETENCY NODE • MSB EXPERIMENTAL ]"
+                    "CLASSIC_IVORY" -> "EX COGNITIONE TRIUMPHUS • POWERED BY MSB CREATIVE STUDIOS"
+                    else -> "HIGHLIGHT MSB SUDOKU CHALLENGE • POWERED BY MSB CREATIVE STUDIOS"
+                }
+                val jsBrandFont = when (currentStyle) {
+                    "NEON_CYBER" -> "bold 11px monospace"
+                    "CLASSIC_IVORY" -> "bold 11px Georgia, serif"
+                    else -> "bold 12px sans-serif"
+                }
+                val jsSubtitleFooterText = when (currentStyle) {
+                    "NEON_CYBER" -> "Digital Certificate Generated via Client-Side HTML5 Canvas Vector Pipeline"
+                    "CLASSIC_IVORY" -> "Digital Certificate Generated via Client-Side Core Serif Vector Pipeline"
+                    else -> "Digital Certificate Generated via Client-Side HTML5 Canvas Vector Pipeline"
+                }
+
                 Spacer(modifier = Modifier.height(2.dp))
 
                 Box(
@@ -2005,7 +2265,11 @@ fun WinningCertificateOverlay(
                         .clip(RoundedCornerShape(14.dp))
                         .border(
                             width = 2.dp,
-                            color = Color(0xFFD4AF37),
+                            color = when (currentStyle) {
+                                "NEON_CYBER" -> Color(0xFFFF007F)
+                                "CLASSIC_IVORY" -> Color(0xFF800020)
+                                else -> Color(0xFFD4AF37)
+                            },
                             shape = RoundedCornerShape(14.dp)
                         )
                 ) {
@@ -2057,66 +2321,90 @@ fun WinningCertificateOverlay(
                             
                             // Radial background glow
                             const radial = ctx.createRadialGradient(400, 300, 50, 400, 300, 450);
-                            radial.addColorStop(0, '#1c180d');
-                            radial.addColorStop(1, '#020202');
+                            radial.addColorStop(0, '${jsBgColorCenter}');
+                            radial.addColorStop(1, '${jsBgColorEdge}');
                             ctx.fillStyle = radial;
                             ctx.fillRect(0, 0, 800, 600);
 
-                            // Elegant Gold Border
-                            ctx.strokeStyle = '#D4AF37';
+                            // Cyber Grid line drawing inside preview
+                            if ('${currentStyle}' === 'NEON_CYBER') {
+                              ctx.strokeStyle = 'rgba(0, 240, 255, 0.05)';
+                              ctx.lineWidth = 1;
+                              for (let gY = 0; gY < 600; gY += 30) {
+                                ctx.beginPath(); ctx.moveTo(0, gY); ctx.lineTo(800, gY); ctx.stroke();
+                              }
+                              for (let gX = 0; gX < 800; gX += 30) {
+                                ctx.beginPath(); ctx.moveTo(gX, 0); ctx.lineTo(gX, 600); ctx.stroke();
+                              }
+                            }
+
+                            // Elegant Outer Border
+                            ctx.strokeStyle = '${jsOuterBorderColor}';
                             ctx.lineWidth = 10;
                             ctx.strokeRect(15, 15, 770, 570);
                             
-                            // Inner Gold Border
-                            ctx.strokeStyle = '#D4AF37';
+                            // Inner Border
+                            ctx.strokeStyle = '${jsInnerBorderColor}';
                             ctx.lineWidth = 2;
                             ctx.strokeRect(30, 30, 740, 540);
                             
                             // Corner accents
-                            ctx.fillStyle = '#D4AF37';
-                            // Top-Left
-                            ctx.beginPath();
-                            ctx.moveTo(30, 30);
-                            ctx.lineTo(60, 30);
-                            ctx.lineTo(30, 60);
-                            ctx.fill();
-                            // Top-Right
-                            ctx.beginPath();
-                            ctx.moveTo(770, 30);
-                            ctx.lineTo(740, 30);
-                            ctx.lineTo(770, 60);
-                            ctx.fill();
-                            // Bottom-Left
-                            ctx.beginPath();
-                            ctx.moveTo(30, 570);
-                            ctx.lineTo(60, 570);
-                            ctx.lineTo(30, 540);
-                            ctx.fill();
-                            // Bottom-Right
-                            ctx.beginPath();
-                            ctx.moveTo(770, 570);
-                            ctx.lineTo(740, 570);
-                            ctx.lineTo(770, 540);
-                            ctx.fill();
+                            if ('${currentStyle}' === 'COSMIC_LUXURY') {
+                              ctx.fillStyle = '#D4AF37';
+                              // Top-Left
+                              ctx.beginPath(); ctx.moveTo(30, 30); ctx.lineTo(60, 30); ctx.lineTo(30, 60); ctx.fill();
+                              // Top-Right
+                              ctx.beginPath(); ctx.moveTo(770, 30); ctx.lineTo(740, 30); ctx.lineTo(770, 60); ctx.fill();
+                              // Bottom-Left
+                              ctx.beginPath(); ctx.moveTo(30, 570); ctx.lineTo(60, 570); ctx.lineTo(30, 540); ctx.fill();
+                              // Bottom-Right
+                              ctx.beginPath(); ctx.moveTo(770, 570); ctx.lineTo(740, 570); ctx.lineTo(770, 540); ctx.fill();
+                            } else if ('${currentStyle}' === 'CLASSIC_IVORY') {
+                              ctx.fillStyle = '#0D233A';
+                              const cornerRad = 10;
+                              ctx.beginPath(); ctx.arc(44, 44, cornerRad, 0, 2*Math.PI); ctx.fill();
+                              ctx.beginPath(); ctx.arc(756, 44, cornerRad, 0, 2*Math.PI); ctx.fill();
+                              ctx.beginPath(); ctx.arc(44, 556, cornerRad, 0, 2*Math.PI); ctx.fill();
+                              ctx.beginPath(); ctx.arc(756, 556, cornerRad, 0, 2*Math.PI); ctx.fill();
+                              
+                              ctx.fillStyle = '#D4AF37';
+                              ctx.font = 'bold 12px Georgia, serif';
+                              ctx.textAlign = 'center';
+                              ctx.fillText('★', 44, 48);
+                              ctx.fillText('★', 756, 48);
+                              ctx.fillText('★', 44, 560);
+                              ctx.fillText('★', 756, 560);
+                            } else if ('${currentStyle}' === 'NEON_CYBER') {
+                              ctx.strokeStyle = '#00F0FF';
+                              ctx.lineWidth = 4;
+                              // TL
+                              ctx.beginPath(); ctx.moveTo(30,30); ctx.lineTo(80,30); ctx.moveTo(30,30); ctx.lineTo(30,80); ctx.stroke();
+                              // TR
+                              ctx.beginPath(); ctx.moveTo(770,30); ctx.lineTo(720,30); ctx.moveTo(770,30); ctx.lineTo(770,80); ctx.stroke();
+                              // BL
+                              ctx.beginPath(); ctx.moveTo(30,570); ctx.lineTo(80,570); ctx.moveTo(30,570); ctx.lineTo(30,520); ctx.stroke();
+                              // BR
+                              ctx.beginPath(); ctx.moveTo(770,570); ctx.lineTo(720,570); ctx.moveTo(770,570); ctx.lineTo(770,520); ctx.stroke();
+                            }
 
                             ctx.textAlign = 'center';
                             
                             // Header Star Label
-                            ctx.fillStyle = '#D4AF37';
-                            ctx.font = 'bold 16px Georgia, serif';
-                            ctx.fillText('★ ★ ★  COGNITIVE GRADUATED SOLVER  ★ ★ ★', 400, 65);
+                            ctx.fillStyle = '${jsHeaderColor}';
+                            ctx.font = '${jsHeaderFont}';
+                            ctx.fillText('${jsHeaderText}', 400, 65);
 
                             // Title: MSB SUDOKU CHALLENGE Categories
-                            ctx.fillStyle = '#FFFFFF';
-                            ctx.font = 'bold 24px sans-serif';
-                            ctx.fillText('${currentTemplate.matchTitle.uppercase()}', 400, 105);
+                            ctx.fillStyle = '${jsTitleColor}';
+                            ctx.font = '${jsTitleFont}';
+                            ctx.fillText('${jsTitleText}', 400, 105);
 
-                            ctx.fillStyle = '#D4AF37';
-                            ctx.font = 'bold 10px monospace';
-                            ctx.fillText('OFFICIAL CERTIFICATE OF COGNITIVE GRADUATION', 400, 132);
+                            ctx.fillStyle = '${jsSubtitleColor}';
+                            ctx.font = '${jsSubtitleFont}';
+                            ctx.fillText('${jsSubtitleText}', 400, 132);
                             
                             // Divider
-                            ctx.strokeStyle = 'rgba(212, 175, 55, 0.4)';
+                            ctx.strokeStyle = '${jsSepColor}';
                             ctx.lineWidth = 1.5;
                             ctx.beginPath();
                             ctx.moveTo(200, 145);
@@ -2124,52 +2412,54 @@ fun WinningCertificateOverlay(
                             ctx.stroke();
 
                             // Certified text
-                            ctx.fillStyle = '#bebebe';
-                            ctx.font = 'italic 12px Georgia, serif';
-                            ctx.fillText('This prestigious cognitive credential is formally awarded to', 400, 172);
+                            ctx.fillStyle = '${jsIntroColor}';
+                            ctx.font = '${jsIntroFont}';
+                            ctx.fillText('${jsIntroText}', 400, 172);
 
                             // User Name
-                            ctx.fillStyle = '#FFD700';
-                            ctx.font = 'bold 26px Georgia, serif';
-                            ctx.shadowColor = 'rgba(255, 215, 0, 0.3)';
-                            ctx.shadowBlur = 10;
+                            ctx.fillStyle = '${jsUserNameColor}';
+                            ctx.font = '${jsUserNameFont}';
+                            if ('${currentStyle}' === 'COSMIC_LUXURY') {
+                              ctx.shadowColor = 'rgba(255, 215, 0, 0.3)';
+                              ctx.shadowBlur = 10;
+                            }
                             ctx.fillText('${userNameStr}', 400, 215);
                             ctx.shadowBlur = 0; // reset
 
                             // Subscript
-                            ctx.fillStyle = '#9e9e9e';
-                            ctx.font = '9px sans-serif';
-                            ctx.fillText('for exceptional logical precision, matrix resolution speed, and cognitive excellence', 400, 245);
-                            ctx.fillText('within the boundaries of MSB Creative Studios challenge specifications.', 400, 260);
+                            ctx.fillStyle = '${jsDescColor}';
+                            ctx.font = '${jsDescFont}';
+                            ctx.fillText('${jsDescText1}', 400, 245);
+                            ctx.fillText('${jsDescText2}', 400, 260);
 
                             // Draw Cognitive AI Endorsement Seal inside WebView Canvas (No Google)
                             const endorsementStr = '${finalEndorsementStr}';
-                            ctx.fillStyle = '#4DE8F4';
-                            ctx.font = 'bold 9px monospace';
-                            ctx.fillText('⚡ INTEGRATED COGNITIVE AI CRITIQUE (HIGH PRECISION):', 400, 285);
+                            ctx.fillStyle = '${jsAiHeaderColor}';
+                            ctx.font = '${jsAiHeaderFont}';
+                            ctx.fillText('${jsAiHeaderText}', 400, 285);
                             
-                            ctx.fillStyle = '#FFFFFF';
-                            ctx.font = 'italic 10px Georgia, serif';
+                            ctx.fillStyle = '${jsAiBodyColor}';
+                            ctx.font = '${jsAiBodyFont}';
                             ctx.fillText(endorsementStr, 400, 302);
 
                             // Panel for specifications (height adjusted to 140)
-                            ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+                            ctx.fillStyle = '${jsPanelBg}';
                             ctx.fillRect(80, 325, 640, 140);
-                            ctx.strokeStyle = 'rgba(212, 175, 55, 0.25)';
+                            ctx.strokeStyle = '${jsPanelStroke}';
                             ctx.lineWidth = 1;
                             ctx.strokeRect(80, 325, 640, 140);
 
                             // Left details
                             ctx.textAlign = 'left';
-                            ctx.fillStyle = '#D4AF37';
-                            ctx.font = 'bold 9px monospace';
+                            ctx.fillStyle = '${jsMetricsLabelColor}';
+                            ctx.font = '${jsMetricsLabelFont}';
                             ctx.fillText('MATRIX SIZE:', 110, 350);
                             ctx.fillText('DIFFICULTY:', 110, 375);
                             ctx.fillText('SYNAPTIC SPEED:', 110, 400);
                             ctx.fillText('ACHIEVED DATE:', 110, 425);
 
-                            ctx.fillStyle = '#FFFFFF';
-                            ctx.font = '9px monospace';
+                            ctx.fillStyle = '${jsMetricsValColor}';
+                            ctx.font = '${jsMetricsValFont}';
                             let matrixLabel = '${currentTemplate.gridSize}x${currentTemplate.gridSize} Grid';
                             if (${currentTemplate.gridSize} === 4) {
                                 matrixLabel = '4x4 Grid (Children Category)';
@@ -2179,28 +2469,33 @@ fun WinningCertificateOverlay(
                             ctx.fillText(matrixLabel, 230, 350);
                             ctx.fillText('${currentTemplate.difficulty.uppercase()}', 230, 375);
                             ctx.fillText('${synapticSpeedStr} Hz', 230, 400);
-                            ctx.fillText('${dayStr} ${monthStr} ${yearStr}', 230, 425);
 
                             // Right details
-                            ctx.fillStyle = '#D4AF37';
+                            ctx.fillStyle = '${jsMetricsLabelColor}';
+                            ctx.font = '${jsMetricsLabelFont}';
                             ctx.fillText('RECORD SOLVE TIME:', 400, 350);
                             ctx.fillText('FINAL GAME SCORE:', 400, 375);
                             ctx.fillText('GLOBAL PERCENTILE:', 400, 400);
                             ctx.fillText('COUNTRY CODE:', 400, 425);
 
-                            ctx.fillStyle = '#FFFFFF';
+                            ctx.fillStyle = '${jsMetricsValColor}';
+                            ctx.font = '${jsMetricsValFont}';
                             ctx.fillText('${timeStr} Duration', 545, 350);
-                            ctx.fillStyle = '#FFD700';
+                            
+                            ctx.fillStyle = '${jsScoreColor}';
                             ctx.font = 'bold 9px monospace';
                             ctx.fillText('${computedScoreStr}', 545, 375);
-                            ctx.fillStyle = '#FF9800';
+                            
+                            ctx.fillStyle = '${jsRankColor}';
+                            ctx.font = 'bold 9px monospace';
                             ctx.fillText('${globalPercentileStr}', 545, 400);
-                            ctx.fillStyle = '#FFFFFF';
-                            ctx.font = '9px monospace';
+                            
+                            ctx.fillStyle = '${jsMetricsValColor}';
+                            ctx.font = '${jsMetricsValFont}';
                             ctx.fillText('${countryCode}', 545, 425);
 
                             // Footer separator
-                            ctx.strokeStyle = 'rgba(212, 175, 55, 0.15)';
+                            ctx.strokeStyle = '${jsSepColor}';
                             ctx.beginPath();
                             ctx.moveTo(80, 480);
                             ctx.lineTo(720, 480);
@@ -2212,13 +2507,13 @@ fun WinningCertificateOverlay(
                             ctx.font = '8px monospace';
                             ctx.fillText('VERIFIED LEDGER CREDENTIAL HASH ID: MSB-' + Math.floor(Math.random() * 899999 + 100000), 400, 498);
 
-                            ctx.fillStyle = '#FFD700';
-                            ctx.font = 'bold 12px sans-serif';
-                            ctx.fillText('HIGHLIGHT MSB SUDOKU CHALLENGE • POWERED BY MSB CREATIVE STUDIOS', 400, 524);
+                            ctx.fillStyle = '${jsBrandColor}';
+                            ctx.font = '${jsBrandFont}';
+                            ctx.fillText('${jsBrandText}', 400, 524);
 
                             ctx.fillStyle = '#666666';
                             ctx.font = '8px monospace';
-                            ctx.fillText('Digital Certificate Generated via Client-Side HTML5 Canvas Vector Pipeline', 400, 538);
+                            ctx.fillText('${jsSubtitleFooterText}', 400, 538);
                           }
                           if (document.readyState === 'complete' || document.readyState === 'interactive') {
                             drawCert();
