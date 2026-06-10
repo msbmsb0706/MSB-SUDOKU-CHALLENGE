@@ -31,6 +31,10 @@ fun ControlPanel(
     onNumberEntered: (Int) -> Unit,
     gemsRemaining: Int,
     gridSize: Int = 9,
+    disableGridHelpers: Boolean = false,
+    onToggleGridHelpers: (() -> Unit)? = null,
+    hideLastRow: Boolean = false,
+    onToggleHideLastRow: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -101,6 +105,66 @@ fun ControlPanel(
                         fontWeight = FontWeight.Bold,
                         fontSize = if (gridSize == 4) 28.sp else 22.sp
                     )
+                }
+            }
+        }
+
+        if (onToggleGridHelpers != null || onToggleHideLastRow != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (onToggleGridHelpers != null) {
+                    val helpColor = if (disableGridHelpers) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+                    val helpBg = if (disableGridHelpers) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                    Surface(
+                        color = helpBg,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onToggleGridHelpers() }
+                    ) {
+                        Box(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Grid Accent Highlights: " + (if (disableGridHelpers) "OFF" else "ON"),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = helpColor,
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
+                }
+
+                if (onToggleHideLastRow != null) {
+                    val rowColor = if (hideLastRow) Color(0xFFFF9800) else MaterialTheme.colorScheme.outline
+                    val rowBg = if (hideLastRow) Color(0xFFFFF3E0) else MaterialTheme.colorScheme.surfaceVariant
+                    Surface(
+                        color = rowBg,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onToggleHideLastRow() }
+                    ) {
+                        Box(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Blind Last Row: " + (if (hideLastRow) "ACTIVE" else "SHOW ALL"),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = rowColor,
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
                 }
             }
         }

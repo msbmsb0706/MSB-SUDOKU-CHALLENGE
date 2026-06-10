@@ -51,6 +51,20 @@ class SudokuViewModel(
         prefs.edit().putBoolean("hide_last_row_numbers", newValue).apply()
     }
 
+    // --- Sound Feedback Customizer Settings ---
+    val isSoundEnabled = MutableStateFlow(prefs.getBoolean("is_sound_enabled", true))
+
+    init {
+        SoundManager.isSoundEnabled = isSoundEnabled.value
+    }
+
+    fun toggleSoundEnabled() {
+        val newValue = !isSoundEnabled.value
+        isSoundEnabled.value = newValue
+        prefs.edit().putBoolean("is_sound_enabled", newValue).apply()
+        SoundManager.isSoundEnabled = newValue
+    }
+
     // --- Screen Settings ---
     var activeTab = MutableStateFlow(0) // 0: Play, 1: Competitive Arena, 2: Reward Dashboard
 
@@ -575,6 +589,12 @@ class SudokuViewModel(
                 mistakeCount.value += 1
             }
 
+            if (isCorrect) {
+                SoundManager.playCorrect()
+            } else {
+                SoundManager.playError()
+            }
+
             currentCells[index] = cell.copy(
                 value = number,
                 isError = isError,
@@ -731,6 +751,7 @@ class SudokuViewModel(
             isGameWon.value = true
             timerJob?.cancel()
             hasActiveDraft.value = false
+            SoundManager.playSuccess()
 
             // Generate customized hyper-enthusiastic AI cognitive metrics & record breaking triggers!
             val totalSecs = secondsElapsed.value
@@ -1350,6 +1371,14 @@ class SudokuViewModel(
             val correctCount = currentCells.count { !it.isClue && it.value > 0 && it.value == current.pvpSolution[it.row * size + it.col] }
             
             val selfProg = if (blankTarget > 0) (correctCount * 100 / blankTarget).coerceAtMost(100) else 100
+
+            if (isError) {
+                SoundManager.playError()
+            } else if (selfProg == 100) {
+                SoundManager.playSuccess()
+            } else {
+                SoundManager.playCorrect()
+            }
 
             var finalSearchState = current.copy(
                 pvpGrid = currentCells,

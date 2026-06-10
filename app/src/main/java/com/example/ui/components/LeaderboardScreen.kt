@@ -11,6 +11,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -72,6 +74,7 @@ fun LeaderboardScreen(
     var activeArenaMode by remember { mutableStateOf("One-to-One") } // "One-to-One" vs "Group Challenge" vs "Tournament Cup"
     var pvpGridSizeOption by remember { mutableIntStateOf(9) } // Default 9x9, options 4x4 or 9x9
     var customChatMessage by remember { mutableStateOf("") }
+    var pvpActiveTab by remember { mutableStateOf("board") } // "board" or "chat" or "progress"
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -1011,94 +1014,87 @@ fun LeaderboardScreen(
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(6.dp))
+                                Spacer(modifier = Modifier.height(4.dp))
 
-                                // Dynamic custom game modifiers row
+                                // Composed Tab Selector row so we have separated, full screen withdraw, erase, chat option without disruptive overlaps
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    // Helper Layers Toggle Button ("without any layer")
-                                    val helperColor = if (disableGridHelpers) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
-                                    val helperBg = if (disableGridHelpers) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                                    
-                                    Surface(
-                                        color = helperBg,
+                                    Button(
+                                        onClick = { pvpActiveTab = "board" },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (pvpActiveTab == "board") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = if (pvpActiveTab == "board") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
                                         shape = RoundedCornerShape(8.dp),
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clickable { onToggleDisableGridHelpers() }
+                                        modifier = Modifier.weight(1.0f).height(34.dp),
+                                        contentPadding = PaddingValues(0.dp)
                                     ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.Center
-                                        ) {
-                                            Text(
-                                                text = "Grid Layers: " + (if (disableGridHelpers) "OFF" else "ON"),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = helperColor,
-                                                fontSize = 9.5.sp
-                                            )
-                                        }
+                                        Text("🧩 Board", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
 
-                                    // Hide Last Row Numbers Toggle Button ("some of them last row will be hide numbers")
-                                    val lastRowColor = if (hideLastRow) Color(0xFFFF9800) else MaterialTheme.colorScheme.outline
-                                    val lastRowBg = if (hideLastRow) Color(0xFFFFF3E0) else MaterialTheme.colorScheme.surfaceVariant
-                                    
-                                    Surface(
-                                        color = lastRowBg,
+                                    Button(
+                                        onClick = { pvpActiveTab = "chat" },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (pvpActiveTab == "chat") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = if (pvpActiveTab == "chat") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
                                         shape = RoundedCornerShape(8.dp),
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clickable { onToggleHideLastRow() }
+                                        modifier = Modifier.weight(1.3f).height(34.dp),
+                                        contentPadding = PaddingValues(0.dp)
                                     ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.Center
-                                        ) {
-                                            Text(
-                                                text = "Blind Last Row: " + (if (hideLastRow) "ACTIVE" else "SHOW ALL"),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = lastRowColor,
-                                                fontSize = 9.5.sp
-                                            )
-                                        }
+                                        val chatCount = searchState.liveChatLog.size
+                                        Text("💬 Chat & Nudges (${chatCount})", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    Button(
+                                        onClick = { pvpActiveTab = "progress" },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (pvpActiveTab == "progress") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = if (pvpActiveTab == "progress") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1.2f).height(34.dp),
+                                        contentPadding = PaddingValues(0.dp)
+                                    ) {
+                                        Text("🏆 Rivals (${searchState.progressSelf}%)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
 
                                 Spacer(modifier = Modifier.height(4.dp))
 
-                                // Dynamic interactive Sudoku board
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .weight(1f, fill = false)
-                                ) {
-                                    SudokuGrid(
-                                        grid = searchState.pvpGrid,
-                                        selectedCell = searchState.pvpSelectedCell,
-                                        onCellSelected = { r, c -> onPvpCellSelected(r, c) },
-                                        isPaused = false,
-                                        disableGridHelpers = disableGridHelpers,
-                                        hideLastRow = hideLastRow,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .aspectRatio(1f)
-                                    )
+                                // Tab Content
+                                when (pvpActiveTab) {
+                                    "board" -> {
+                                        // Dynamic interactive Sudoku board
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .weight(1f)
+                                        ) {
+                                            SudokuGrid(
+                                                grid = searchState.pvpGrid,
+                                                selectedCell = searchState.pvpSelectedCell,
+                                                onCellSelected = { r, c -> onPvpCellSelected(r, c) },
+                                                isPaused = false,
+                                                disableGridHelpers = disableGridHelpers,
+                                                hideLastRow = hideLastRow,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .aspectRatio(1f)
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                    }
                                 }
 
-                                Spacer(modifier = Modifier.height(6.dp))
-
-                                // Eraser Tool Selection + Keyboard
-                                Row(
+                                if (pvpActiveTab == "board") {
+                                    // Eraser Tool Selection + Keyboard
+                                    Row(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     verticalAlignment = Alignment.CenterVertically
@@ -1171,9 +1167,11 @@ fun LeaderboardScreen(
                                         }
                                     }
                                 }
+                                }
 
                                 Spacer(modifier = Modifier.height(6.dp))
 
+                                if (pvpActiveTab == "chat") {
                                 // Real-time chat logs
                                 Column(
                                     modifier = Modifier
@@ -1247,9 +1245,11 @@ fun LeaderboardScreen(
                                         )
                                     }
                                 }
+                                }
 
                                 Spacer(modifier = Modifier.height(8.dp))
 
+                                if (pvpActiveTab == "progress") {
                                 // Progress bars comparison
                                 Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Column {
@@ -1307,9 +1307,11 @@ fun LeaderboardScreen(
                                         }
                                     }
                                 }
+                                }
 
                                 Spacer(modifier = Modifier.height(10.dp))
 
+                                if (pvpActiveTab == "chat") {
                                 // Realtime Nudge activity feedback banner
                                 if (searchState.lastNudgeMessage.isNotEmpty()) {
                                     Surface(
@@ -1414,9 +1416,10 @@ fun LeaderboardScreen(
                                         )
                                     }
                                 }
+                                }
                             }
 
-                            MatchmakingState.MatchFinished -> {
+                            is MatchmakingState.MatchFinished -> {
                                 recentMatchResult?.let { result ->
                                     val titleText = if (result.isWon) "VICTORY!" else "DEFEAT"
                                     val titleColor = if (result.isWon) Color(0xFF4CAF50) else Color(0xFFE91E63)

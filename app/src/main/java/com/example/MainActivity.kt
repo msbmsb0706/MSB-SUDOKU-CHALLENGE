@@ -158,6 +158,7 @@ fun MainScaffold(viewModel: SudokuViewModel) {
     val activeTab by viewModel.activeTab.collectAsStateWithLifecycle()
     val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
     val levelUpValue by viewModel.levelUpEvent.collectAsStateWithLifecycle()
+    val isSoundEnabled by viewModel.isSoundEnabled.collectAsStateWithLifecycle()
 
     AuthStateContainer(viewModel = viewModel) {
         Scaffold(
@@ -167,7 +168,9 @@ fun MainScaffold(viewModel: SudokuViewModel) {
             topBar = {
                 TopAppBarCompact(
                     userProfile = userProfile,
-                    onAddPointsDebug = { viewModel.grantDebugPoints20k() }
+                    onAddPointsDebug = { viewModel.grantDebugPoints20k() },
+                    isSoundEnabled = isSoundEnabled,
+                    onToggleSound = { viewModel.toggleSoundEnabled() }
                 )
             },
             bottomBar = {
@@ -235,7 +238,9 @@ fun MainScaffold(viewModel: SudokuViewModel) {
 @Composable
 fun TopAppBarCompact(
     userProfile: UserProfileEntity?,
-    onAddPointsDebug: () -> Unit
+    onAddPointsDebug: () -> Unit,
+    isSoundEnabled: Boolean,
+    onToggleSound: () -> Unit
 ) {
     Surface(
         tonalElevation = 6.dp,
@@ -268,17 +273,46 @@ fun TopAppBarCompact(
                 )
             }
 
-            // Coin wallet and points click to add +20k debug info
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { onAddPointsDebug() }
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-                    .testTag("wallet_balance_header")
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // Interactive Sound Toggle Indicator
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(50.dp),
+                    modifier = Modifier
+                        .clickable { onToggleSound() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = if (isSoundEnabled) "🔊" else "🔇",
+                            fontSize = 11.sp
+                        )
+                        Text(
+                            text = if (isSoundEnabled) "SOUND ON" else "MUTED",
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Black,
+                            color = if (isSoundEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+
+                // Coin wallet and points click to add +20k debug info
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable { onAddPointsDebug() }
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .testTag("wallet_balance_header")
+                ) {
                 Icon(
                     imageVector = Icons.Default.Star,
                     contentDescription = "Coin Balance Icon",
@@ -294,6 +328,7 @@ fun TopAppBarCompact(
             }
         }
     }
+}
 }
 
 @Composable
@@ -894,65 +929,6 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                     TeammatesMiniProgressGrid(players = teamTournamentPlayers)
                 }
 
-                // Dynamic custom game modifiers row (Single Player)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 6.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val helpColor = if (disableGridHelpers) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
-                    val helpBg = if (disableGridHelpers) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                    
-                    Surface(
-                        color = helpBg,
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { viewModel.toggleDisableGridHelperLayers() }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = "Grid Layers: " + (if (disableGridHelpers) "OFF" else "ON"),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = helpColor,
-                                fontSize = 10.sp
-                            )
-                        }
-                    }
-
-                    val rowColor = if (hideLastRow) Color(0xFFFF9800) else MaterialTheme.colorScheme.outline
-                    val rowBg = if (hideLastRow) Color(0xFFFFF3E0) else MaterialTheme.colorScheme.surfaceVariant
-                    
-                    Surface(
-                        color = rowBg,
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { viewModel.toggleHideLastRowNumbers() }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = "Blind Last Row: " + (if (hideLastRow) "ACTIVE" else "SHOW ALL"),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = rowColor,
-                                fontSize = 10.sp
-                            )
-                        }
-                    }
-                }
-
                 // 2. The Custom dynamic grid (4x4 or 9x9!)
                 Box(modifier = Modifier.weight(1.0f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     SudokuGrid(
@@ -974,7 +950,11 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                     onHint = { viewModel.getHint() },
                     onNumberEntered = { viewModel.enterNumber(it) },
                     gemsRemaining = userProfile?.gems ?: 50,
-                    gridSize = gridSize
+                    gridSize = gridSize,
+                    disableGridHelpers = disableGridHelpers,
+                    onToggleGridHelpers = { viewModel.toggleDisableGridHelperLayers() },
+                    hideLastRow = hideLastRow,
+                    onToggleHideLastRow = { viewModel.toggleHideLastRowNumbers() }
                 )
             }
         }
@@ -1518,6 +1498,7 @@ fun ProfileScreenTab(viewModel: SudokuViewModel) {
     val aiAnalysis by viewModel.aiAnalysis.collectAsStateWithLifecycle()
     val isAnalyzing by viewModel.isAnalyzing.collectAsStateWithLifecycle()
     val selectedTheme by viewModel.selectedTheme.collectAsStateWithLifecycle()
+    val isSoundEnabled by viewModel.isSoundEnabled.collectAsStateWithLifecycle()
 
     SettingsPanel(
         userProfile = userProfile,
@@ -1529,7 +1510,9 @@ fun ProfileScreenTab(viewModel: SudokuViewModel) {
         onRunAI = { viewModel.runPlayerStatsAIAnalysis() },
         onLogout = { viewModel.logOutCurrentSession() },
         onSaveProfile = { profile -> viewModel.saveProfile(profile) },
-        onConnectSocial = { platform, handle -> viewModel.connectSocialMedia(platform, handle) }
+        onConnectSocial = { platform, handle -> viewModel.connectSocialMedia(platform, handle) },
+        isSoundEnabled = isSoundEnabled,
+        onToggleSound = { viewModel.toggleSoundEnabled() }
     )
 }
 

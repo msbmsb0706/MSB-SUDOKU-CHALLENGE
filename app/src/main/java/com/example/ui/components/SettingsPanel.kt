@@ -43,6 +43,8 @@ fun SettingsPanel(
     onLogout: () -> Unit,
     onSaveProfile: (UserProfileEntity) -> Unit,
     onConnectSocial: (String, String) -> Unit = { _, _ -> },
+    isSoundEnabled: Boolean = true,
+    onToggleSound: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var editUsername by remember { mutableStateOf("") }
@@ -538,6 +540,87 @@ fun SettingsPanel(
                             }
                         }
                     }
+                }
+            }
+        }
+
+        // --- Game Engine Physics and Sound Preferences Customizer ---
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("🔊", fontSize = 18.sp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "Tactile Audio Feedback",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "Hear satisfying acoustics for correct moves, warning buzzes for mistakes, and triumphant fanfares.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onToggleSound() }
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSoundEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(if (isSoundEnabled) "🔊" else "🔇", fontSize = 18.sp)
+                            }
+                        }
+                        Column {
+                            Text(
+                                text = "Acoustic FX Status",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = if (isSoundEnabled) "Enabled (High Frequency Synaptic)" else "Sound Muted",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Switch(
+                        checked = isSoundEnabled,
+                        onCheckedChange = { onToggleSound() },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
+                            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    )
                 }
             }
         }
