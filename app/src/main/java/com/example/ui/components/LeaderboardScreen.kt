@@ -43,7 +43,7 @@ fun LeaderboardScreen(
     onRegionSelected: (String) -> Unit,
     searchState: MatchmakingState,
     recentMatchResult: MatchResult?,
-    onEnterArena: () -> Unit,
+    onEnterArena: (String) -> Unit,
     onDismissMatch: () -> Unit,
     userProfile: UserProfileEntity?,
     fastestTimes: List<GlobalFastestPlayer> = emptyList(),
@@ -53,66 +53,159 @@ fun LeaderboardScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedSubTab by remember { mutableStateOf(0) } // 0: Points Ladder, 1: Fastest Times (Firestore)
+    var activeArenaMode by remember { mutableStateOf("One-to-One") } // "One-to-One" vs "Group Challenge" vs "Tournament Cup"
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             
-            // 1. Competitive Arena Card (Banner on top)
+            // 1. Competitive Arena Area with Mode Selector Tabs
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(12.dp)
                     .border(
                         1.dp,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
                         RoundedCornerShape(16.dp)
                     )
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(14.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "MULTIPLAYER ARENA",
+                        text = "MULTIPLAYER CHALLENGE HUB",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
+                        fontWeight = FontWeight.Black,
                         color = MaterialTheme.colorScheme.primary,
                         letterSpacing = 1.sp
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Challenge active international Sudoku grandmasters in real-time speed solving. Buy in costs 5 Gems. Winning awards up to +600 PlayGold points & +100 Competitive Rating point increments!",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 16.sp
+                        text = "Enjoy realistic offline simulated tournament and opponent action!",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Mode Selection Row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        listOf("One-to-One", "Group Challenge", "Tournament Cup").forEach { mode ->
+                            val isSel = activeArenaMode == mode
+                            val bgCol by animateColorAsState(
+                                targetValue = if (isSel) MaterialTheme.colorScheme.primary else Color.Transparent
+                            )
+                            val textCol by animateColorAsState(
+                                targetValue = if (isSel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(bgCol)
+                                    .clickable { activeArenaMode = mode }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = when(mode) {
+                                        "One-to-One" -> "⚔️ 1v1 Duel"
+                                        "Group Challenge" -> "👥 Group"
+                                        "Tournament Cup" -> "🏆 Tourney"
+                                        else -> mode
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = textCol,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Dynamic details card based on selected mode
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            val description = when(activeArenaMode) {
+                                "One-to-One" -> "Solve standard head-to-head Sudoku matrices against a simulated international rival. Stay sharp!"
+                                "Group Challenge" -> "Engage 4 online bots simultaneously in a rapid 5-player speed solver race. Send speed nudges!"
+                                "Tournament Cup" -> "Engage in the prestigious Grand Academy Cup Championship. 3 rounds of hard Sudoku elimination."
+                                else -> ""
+                            }
+                            val rewards = when(activeArenaMode) {
+                                "One-to-One" -> "Rewards: +300 PlayGold, +50 Rating Points (RP), +3 Gems\nBuy-in Cost: 5 Gems"
+                                "Group Challenge" -> "Rewards: +500 PlayGold, +80 Rating Points (RP), +6 Gems\nBuy-in Cost: 8 Gems"
+                                "Tournament Cup" -> "Rewards: +800 PlayGold, +120 Rating Points (RP), +12 Gems, Endorsement\nBuy-in Cost: 12 Gems"
+                                else -> ""
+                            }
+
+                            Text(
+                                text = description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = rewards,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.ExtraBold,
+                                textAlign = TextAlign.Center,
+                                lineHeight = 14.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    val buyInLabel = when(activeArenaMode) {
+                        "One-to-One" -> "5 GEMS BUY-IN: SOLVE LIVE"
+                        "Group Challenge" -> "8 GEMS BUY-IN: LAUNCH RACE"
+                        "Tournament Cup" -> "12 GEMS BUY-IN: PLAY CUP"
+                        else -> "JOIN ARENA"
+                    }
 
                     Button(
-                        onClick = onEnterArena,
+                        onClick = { onEnterArena(activeArenaMode) },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.tertiary,
                             contentColor = MaterialTheme.colorScheme.onTertiary
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .height(44.dp)
                             .testTag("enter_arena_button")
                     ) {
                         Icon(
                             imageVector = Icons.Default.Star,
                             contentDescription = "Arena Match Icon",
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "BUY IN: 5 GEMS & SOLVE LIVE",
+                            text = buyInLabel,
                             fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
                             letterSpacing = 0.5.sp
                         )
                     }
@@ -792,29 +885,60 @@ fun LeaderboardScreen(
                                 Spacer(modifier = Modifier.height(16.dp))
 
                                 // Progress bars
-                                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Column {
                                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text("You (${userProfile?.countryFlag ?: "🇺🇸"} ${userProfile?.username ?: "MSB"})", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                            Text("${searchState.progressSelf}%", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Text("You (${userProfile?.countryFlag ?: "🇺🇸"} ${userProfile?.username ?: "MSB"})", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                            Text("${searchState.progressSelf}%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                         }
                                         LinearProgressIndicator(
                                             progress = { searchState.progressSelf / 100f },
                                             modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
-                                            color = MaterialTheme.colorScheme.primary
+                                            color = Color(0xFFD4AF37) // Premium gold for user
                                         )
                                     }
 
-                                    Column {
-                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text("Opponent", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                            Text("${searchState.progressOpponent}%", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    if (searchState.opponentProgresses.isEmpty()) {
+                                        Column {
+                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                                Text("Opponent", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                Text("${searchState.progressOpponent}%", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                            LinearProgressIndicator(
+                                                progress = { searchState.progressOpponent / 100f },
+                                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                                                color = Color(0xFFE91E63)
+                                            )
                                         }
-                                        LinearProgressIndicator(
-                                            progress = { searchState.progressOpponent / 100f },
-                                            modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
-                                            color = Color(0xFFE91E63)
-                                        )
+                                    } else {
+                                        for ((name, progress) in searchState.opponentProgresses) {
+                                            val flag = when {
+                                                name.contains("Tokyo") || name.contains("Yuki") -> "🇯🇵"
+                                                name.contains("Prague") || name.contains("Max") -> "🇨🇿"
+                                                name.contains("Athens") || name.contains("Sophia") -> "🇬🇷"
+                                                name.contains("Berlin") || name.contains("Sven") -> "🇩🇪"
+                                                name.contains("Accra") || name.contains("Adebayo") -> "🇬🇭"
+                                                name.contains("Paris") || name.contains("Chloe") -> "🇫🇷"
+                                                name.contains("Sydney") || name.contains("Emma") -> "🇦🇺"
+                                                else -> "🌐"
+                                            }
+                                            Column {
+                                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                                    Text("$flag $name", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                                    Text("$progress%", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                                LinearProgressIndicator(
+                                                    progress = { progress / 100f },
+                                                    modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                                                    color = when {
+                                                        name.contains("Tokyo") -> Color(0xFF2196F3)
+                                                        name.contains("Berlin") -> Color(0xFFFF9800)
+                                                        name.contains("Athens") -> Color(0xFF9C27B0)
+                                                        else -> Color(0xFFE91E63)
+                                                    }
+                                                )
+                                            }
+                                        }
                                     }
                                 }
 

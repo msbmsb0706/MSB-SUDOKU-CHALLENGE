@@ -71,22 +71,35 @@ fun SudokuGrid(
                         val selectedCellValue = selectedCell?.let { (sr, sc) -> grid.getOrNull(sr * size + sc)?.value } ?: 0
                         val isMatchingValue = selectedCellValue > 0 && cell.value == selectedCellValue
 
-                        // Thick lines (subgrid markers) matching borders
-                        val borderTop = if (r % boxHeight == 0) 2.5.dp else 0.5.dp
-                        val borderBottom = if (r == size - 1) 2.5.dp else 0.5.dp
-                        val borderLeft = if (c % boxWidth == 0) 2.5.dp else 0.5.dp
-                        val borderRight = if (c == size - 1) 2.5.dp else 0.5.dp
+                        // Outlines & grid dividers optimized for high density and modern contrast
+                        val borderThick = 4.dp
+                        val borderThin = 1.5.dp
 
-                        // Background Colors based on M3 theme
+                        val borderTop = if (r % boxHeight == 0) borderThick else borderThin
+                        val borderBottom = if (r == size - 1) borderThick else borderThin
+                        val borderLeft = if (c % boxWidth == 0) borderThick else borderThin
+                        val borderRight = if (c == size - 1) borderThick else borderThin
+
+                        // Background Colors with optimal, highly visible alpha weights under different selected themes
                         val defaultBg = MaterialTheme.colorScheme.surface
                         val finalBg = when {
                             isPaused -> MaterialTheme.colorScheme.surfaceVariant
-                            isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-                            cell.isError -> Color(0xFFFDE8E8) // Visual red alert highlight for mistaken entries!
-                            isMatchingValue -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
-                            isSameRowOrCol || isSameSquare -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+                            isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.55f) // Vivid focus active cell
+                            cell.isError -> Color(0xFFFFCDD2) // Crimson error highlight
+                            isMatchingValue -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.45f) // Distinct highlight for identical digits
+                            isSameRowOrCol -> MaterialTheme.colorScheme.primary.copy(alpha = 0.28f) // Highly visible themed lane crosshair highlight
+                            isSameSquare -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f) // High-contrast square sub-box accent
                             else -> defaultBg
                         }
+
+                        // Boundary outlines use full-strength Primary theme color, internal lines use visible structural grey
+                        val boundaryColor = MaterialTheme.colorScheme.primary
+                        val internalColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.48f)
+
+                        val topColor = if (r % boxHeight == 0) boundaryColor else internalColor
+                        val bottomColor = if (r == size - 1) boundaryColor else internalColor
+                        val leftColor = if (c % boxWidth == 0) boundaryColor else internalColor
+                        val rightColor = if (c == size - 1) boundaryColor else internalColor
 
                         Box(
                             modifier = Modifier
@@ -98,9 +111,10 @@ fun SudokuGrid(
                                     bottom = borderBottom,
                                     left = borderLeft,
                                     right = borderRight,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(
-                                        alpha = if (r % boxHeight == 0 || c % boxWidth == 0 || r == size - 1 || c == size - 1) 0.5f else 0.15f
-                                    )
+                                    topColor = topColor,
+                                    bottomColor = bottomColor,
+                                    leftColor = leftColor,
+                                    rightColor = rightColor
                                 )
                                 .clickable { onCellSelected(r, c) }
                                 .testTag("cell_${r}_${c}"),
@@ -228,24 +242,30 @@ fun PencilNotesGrid(notes: Set<Int>, size: Int = 9) {
 }
 
 /**
- * Custom Border modifier helper to draw borders around cells symmetrically.
+ * Custom Border modifier helper to draw borders around cells symmetrically with high contrast.
  */
 fun Modifier.drawCustomBorders(
     top: androidx.compose.ui.unit.Dp,
     bottom: androidx.compose.ui.unit.Dp,
     left: androidx.compose.ui.unit.Dp,
     right: androidx.compose.ui.unit.Dp,
-    color: Color
+    topColor: Color,
+    bottomColor: Color,
+    leftColor: Color,
+    rightColor: Color
 ): Modifier {
-    return this.drawBehindBorder(top, bottom, left, right, color)
+    return this.drawDetailedBorders(top, bottom, left, right, topColor, bottomColor, leftColor, rightColor)
 }
 
-fun Modifier.drawBehindBorder(
+fun Modifier.drawDetailedBorders(
     top: androidx.compose.ui.unit.Dp,
     bottom: androidx.compose.ui.unit.Dp,
     left: androidx.compose.ui.unit.Dp,
     right: androidx.compose.ui.unit.Dp,
-    color: Color
+    topColor: Color,
+    bottomColor: Color,
+    leftColor: Color,
+    rightColor: Color
 ): Modifier {
     return this.drawBehind {
         val strokeWidthTop = top.toPx()
@@ -259,7 +279,7 @@ fun Modifier.drawBehindBorder(
         // Top line
         if (strokeWidthTop > 0) {
             drawLine(
-                color = color,
+                color = topColor,
                 start = androidx.compose.ui.geometry.Offset(0f, 0f),
                 end = androidx.compose.ui.geometry.Offset(width, 0f),
                 strokeWidth = strokeWidthTop
@@ -268,7 +288,7 @@ fun Modifier.drawBehindBorder(
         // Left line
         if (strokeWidthLeft > 0) {
             drawLine(
-                color = color,
+                color = leftColor,
                 start = androidx.compose.ui.geometry.Offset(0f, 0f),
                 end = androidx.compose.ui.geometry.Offset(0f, height),
                 strokeWidth = strokeWidthLeft
@@ -277,7 +297,7 @@ fun Modifier.drawBehindBorder(
         // Bottom line
         if (strokeWidthBottom > 0) {
             drawLine(
-                color = color,
+                color = bottomColor,
                 start = androidx.compose.ui.geometry.Offset(0f, height),
                 end = androidx.compose.ui.geometry.Offset(width, height),
                 strokeWidth = strokeWidthBottom
@@ -286,7 +306,7 @@ fun Modifier.drawBehindBorder(
         // Right line
         if (strokeWidthRight > 0) {
             drawLine(
-                color = color,
+                color = rightColor,
                 start = androidx.compose.ui.geometry.Offset(width, 0f),
                 end = androidx.compose.ui.geometry.Offset(width, height),
                 strokeWidth = strokeWidthRight

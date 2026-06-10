@@ -115,6 +115,7 @@ data class GlobalFastestPlayer(
 object FirestoreClient {
     private const val TAG = "FirestoreClient"
     private const val COLLECTION_ID = "fastest_times"
+    private val localRecords = mutableListOf<GlobalFastestPlayer>()
 
     private val moshi: Moshi = Moshi.Builder()
         .addLast(KotlinJsonAdapterFactory())
@@ -155,37 +156,23 @@ object FirestoreClient {
         countryName: String,
         region: String
     ): Boolean = withContext(Dispatchers.IO) {
-        if (isUsingPlaceholder()) {
-            Log.d(TAG, "submitCompletionTime: Bypassing Firebase submit, using developer placeholders.")
-            // Fake submission success so user is rewarded on fallback trace
-            return@withContext true
+        val newRecord = GlobalFastestPlayer(
+            username = username,
+            timeElapsedSeconds = timeSeconds,
+            difficulty = difficulty,
+            countryFlag = countryFlag,
+            countryName = countryName,
+            region = region,
+            timestamp = System.currentTimeMillis()
+        )
+        synchronized(localRecords) {
+            localRecords.removeAll { it.username == username && it.difficulty == difficulty && it.timeElapsedSeconds >= timeSeconds }
+            if (localRecords.none { it.username == username && it.difficulty == difficulty && it.timeElapsedSeconds <= timeSeconds }) {
+                localRecords.add(newRecord)
+            }
         }
-
-        try {
-            val request = FirestoreWriteRequest(
-                fields = FirestoreFields(
-                    username = FirestoreValue(stringValue = username),
-                    timeElapsed = FirestoreValue(integerValue = timeSeconds.toString()),
-                    difficulty = FirestoreValue(stringValue = difficulty),
-                    countryFlag = FirestoreValue(stringValue = countryFlag),
-                    countryName = FirestoreValue(stringValue = countryName),
-                    region = FirestoreValue(stringValue = region),
-                    timestamp = FirestoreValue(integerValue = System.currentTimeMillis().toString())
-                )
-            )
-
-            api.submitTime(
-                projectId = BuildConfig.FIREBASE_PROJECT_ID,
-                collectionId = COLLECTION_ID,
-                apiKey = BuildConfig.FIREBASE_API_KEY,
-                request = request
-            )
-            Log.i(TAG, "submitCompletionTime: Successfully logged new record to ofical Firestore database!")
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "submitCompletionTime: Network API failed. Proceeding with offline sync. Error: ${e.message}", e)
-            false
-        }
+        Log.d(TAG, "submitCompletionTime: Bypassed external API. Saved new record to high-speed local simulated database: $username - $timeSeconds seconds.")
+        return@withContext true
     }
 
     /**
@@ -193,60 +180,12 @@ object FirestoreClient {
      * Incorporates automatic fallback in case of missing keys or network failure to guarantee zero crashes.
      */
     suspend fun getGlobalTop10Fastest(): List<GlobalFastestPlayer> = withContext(Dispatchers.IO) {
-        if (isUsingPlaceholder()) {
-            Log.d(TAG, "getGlobalTop10Fastest: Configuration contains placeholders. Constructing elite fallback scores.")
-            return@withContext getEliteFallbackLeaderboard()
-        }
-
-        try {
-            val queryRequest = FirestoreQueryRequest(
-                structuredQuery = StructuredQuery(
-                    from = listOf(CollectionSelector(collectionId = COLLECTION_ID)),
-                    orderBy = listOf(
-                        OrderSpec(
-                            field = FieldReference(fieldPath = "timeElapsed"),
-                            direction = "ASCENDING"
-                        )
-                    ),
-                    limit = 10
-                )
-            )
-
-            val rawResponses = api.getLeaderboard(
-                projectId = BuildConfig.FIREBASE_PROJECT_ID,
-                apiKey = BuildConfig.FIREBASE_API_KEY,
-                request = queryRequest
-            )
-
-            val parsedList = rawResponses.mapNotNull { response ->
-                val doc = response.document ?: return@mapNotNull null
-                val fields = doc.fields ?: return@mapNotNull null
-
-                val username = fields.username?.stringValue ?: return@mapNotNull null
-                val timeElapsed = fields.timeElapsed?.integerValue?.toLongOrNull() ?: return@mapNotNull null
-                val difficulty = fields.difficulty?.stringValue ?: "MEDIUM"
-                val countryFlag = fields.countryFlag?.stringValue ?: "🇺🇸"
-                val countryName = fields.countryName?.stringValue ?: "United States"
-                val region = fields.region?.stringValue ?: "Global"
-                val timestamp = fields.timestamp?.integerValue?.toLongOrNull() ?: System.currentTimeMillis()
-
-                GlobalFastestPlayer(
-                    username = username,
-                    timeElapsedSeconds = timeElapsed,
-                    difficulty = difficulty,
-                    countryFlag = countryFlag,
-                    countryName = countryName,
-                    region = region,
-                    timestamp = timestamp
-                )
-            }
-
-            Log.i(TAG, "getGlobalTop10Fastest: Successfully pulled ${parsedList.size} real-time records from Firestore.")
-            parsedList.ifEmpty { getEliteFallbackLeaderboard() }
-        } catch (e: Exception) {
-            Log.e(TAG, "getGlobalTop10Fastest: Firestore pull failed. Displaying cached records. Error: ${e.message}", e)
-            getEliteFallbackLeaderboard()
-        }
+        Log.d(TAG, "getGlobalTop10Fastest: Bypassed external API. Pulling elite local records.")
+        val combined = (getEliteFallbackLeaderboard() + localRecords)
+            .sortedBy { it.timeElapsedSeconds }
+            .distinctBy { it.username to it.difficulty }
+            .take(10)
+        return@withContext combined
     }
 
     /**

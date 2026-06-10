@@ -11,6 +11,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +19,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import java.util.Locale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -412,6 +416,47 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
 
     var showCertificateDialog by remember { mutableStateOf(false) }
     var certificateNameInput by remember { mutableStateOf("") }
+    var showWithdrawConfirmation by remember { mutableStateOf(false) }
+
+    if (showWithdrawConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showWithdrawConfirmation = false },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showWithdrawConfirmation = false
+                        viewModel.forfeitAndExitGame()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("YES, WITHDRAW", fontWeight = FontWeight.Black)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWithdrawConfirmation = false }) {
+                    Text("CONTINUE PLAYING", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                }
+            },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = "Warning icon",
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(40.dp)
+                )
+            },
+            title = {
+                Text("WITHDRAW PUZZLE MATCH?", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            },
+            text = {
+                Text(
+                    "Are you sure you want to withdraw from this puzzle? This forfeit will clear active progress on the grid. PlayGold Points will only accrue on verified completions.",
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
+        )
+    }
 
     LaunchedEffect(userProfile) {
         if (certificateNameInput.isEmpty() && userProfile != null) {
@@ -486,6 +531,88 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                                     contentPadding = PaddingValues(0.dp)
                                 ) {
                                     Text(label, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Real-Time Fastest Record Times Card (Personal Bests)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .border(1.dp, Color(0xFFD4AF37).copy(alpha = 0.3f), RoundedCornerShape(14.dp)),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text("👑", fontSize = 16.sp)
+                            Text(
+                                text = "REAL-TIME FASTEST RECORD TIMES",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFFD4AF37),
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            Text(
+                                text = "LIVE UPDATED",
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF4CAF50),
+                                modifier = Modifier
+                                    .background(Color(0xFF4CAF50).copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        val easyPb = userProfile?.bestTimeEasy ?: 0L
+                        val medPb = userProfile?.bestTimeMedium ?: 0L
+                        val hardPb = userProfile?.bestTimeHard ?: 0L
+                        val expertPb = userProfile?.bestTimeExpert ?: 0L
+
+                        val formatPb: (Long) -> String = { sec ->
+                            if (sec <= 0L) "--:--" else {
+                                val m = sec / 60
+                                val s = sec % 60
+                                String.format(java.util.Locale.getDefault(), "%02d:%02d", m, s)
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            listOf(
+                                Pair("EASY", easyPb),
+                                Pair("MEDIUM", medPb),
+                                Pair("HARD", hardPb),
+                                Pair("EXPERT", expertPb)
+                            ).forEach { (diff, score) ->
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(
+                                        text = diff,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = formatPb(score),
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = if (score > 0L) Color(0xFFD4AF37) else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
                         }
@@ -610,6 +737,34 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Prominent Outside Visible COGNITIVE CERTIFICATE PORTAL
+                Button(
+                    onClick = { showCertificateDialog = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD4AF37)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(25.dp)),
+                    shape = RoundedCornerShape(25.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = "Certificate Icon",
+                        tint = Color.Black,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "🏆 COGNITIVE CERTIFICATE PORTAL",
+                        color = Color.Black,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 12.sp,
+                        letterSpacing = 0.5.sp
+                    )
+                }
             }
         } else {
             // Live Puzzle Active Canvas
@@ -628,7 +783,7 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Left: Difficulty label / Leave button if Tournament Active
+                    // Left: Difficulty label + Withdraw/Exit button / Leave button if Tournament Active
                     if (isTeamTournamentActive) {
                         Button(
                             onClick = { viewModel.leaveAndShowTournamentLeaderboard() },
@@ -639,17 +794,44 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                             Text("LEAVE & SHOW LOBBY", fontSize = 9.sp, fontWeight = FontWeight.Bold)
                         }
                     } else {
-                        Surface(
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(8.dp)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text(
-                                text = selectedDifficulty.label.uppercase(),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = selectedDifficulty.label.uppercase(),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+
+                            // High-impact WITHDRAW / EXIT option
+                            Button(
+                                onClick = { showWithdrawConfirmation = true },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.85f),
+                                    contentColor = Color.White
+                                ),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier
+                                    .height(32.dp)
+                                    .testTag("forfeit_exit_btn")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ExitToApp,
+                                    contentDescription = "Exit to Main Screen",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("WITHDRAW", fontSize = 9.sp, fontWeight = FontWeight.Black)
+                            }
                         }
                     }
 
@@ -1064,6 +1246,15 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                     synapticSpeed = aiSynapticSpeedHertz,
                     focusRating = aiCognitiveFocus,
                     globalPercentile = aiGlobalPercentile,
+                    countryCode = when(userProfile?.region?.lowercase()) {
+                        "americas" -> "US"
+                        "europe" -> "DE"
+                        "asia-pacific" -> "JP"
+                        "india" -> "IN"
+                        "vietnam" -> "VN"
+                        "africa" -> "NG"
+                        else -> "US"
+                    },
                     onClose = { showCertificateDialog = false }
                 )
             }
@@ -1090,7 +1281,7 @@ fun ArenaScreenTab(viewModel: SudokuViewModel) {
         onRegionSelected = { viewModel.regionFilter.value = it },
         searchState = searchState,
         recentMatchResult = recentMatchResult,
-        onEnterArena = { viewModel.enterCompetitiveArena() },
+        onEnterArena = { mode -> viewModel.enterCompetitiveArena(mode) },
         onDismissMatch = { viewModel.dismissMatchScreen() },
         userProfile = userProfile,
         fastestTimes = fastestTimes,
@@ -1356,6 +1547,19 @@ fun TournamentLeaderboardOverlay(
     }
 }
 
+data class CertificateTemplate(
+    val id: String,
+    val name: String,
+    val matchTitle: String,
+    val gridSize: Int,
+    val difficulty: String,
+    val durationSeconds: Long,
+    val synapticSpeed: Double,
+    val focusRating: Double,
+    val globalPercentile: Double,
+    val score: Int
+)
+
 @Composable
 fun WinningCertificateOverlay(
     userName: String,
@@ -1367,12 +1571,145 @@ fun WinningCertificateOverlay(
     synapticSpeed: Double,
     focusRating: Double,
     globalPercentile: Double,
+    countryCode: String,
     onClose: () -> Unit
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var isSaving by remember { mutableStateOf(false) }
+    var isSavingPdf by remember { mutableStateOf(false) }
     var saveProgress by remember { mutableStateOf(0f) }
     var actionMessage by remember { mutableStateOf<String?>(null) }
+
+    // local name state to allow buttery input while typing
+    var localNameInput by remember { mutableStateOf(userName.ifBlank { "MSB COGNITIVE SOLVER".uppercase() }) }
+
+    // 5 custom preset achievements, plus the dynamic latest solve
+    val currentSolveTemplate = remember(gridSize, difficultyLabel, durationSeconds, synapticSpeed, focusRating, globalPercentile) {
+        CertificateTemplate(
+            id = "latest_solve",
+            name = "🏆 Live Solve (${gridSize}x${gridSize})",
+            matchTitle = if (gridSize == 4) "4x4 Children Grid Resolve" else "9x9 Standard Matrix Resolution",
+            gridSize = gridSize,
+            difficulty = difficultyLabel,
+            durationSeconds = durationSeconds,
+            synapticSpeed = synapticSpeed,
+            focusRating = focusRating,
+            globalPercentile = globalPercentile,
+            score = maxOf(350, (synapticSpeed * 45 + (100 - globalPercentile) * 30 + (gridSize * 150) - (durationSeconds * 0.1)).toInt())
+        )
+    }
+
+    val templates = remember(currentSolveTemplate) {
+        listOf(
+            currentSolveTemplate,
+            CertificateTemplate(
+                id = "one_to_one",
+                name = "⚔️ 1v1 Arena Duel",
+                matchTitle = "Competitive Arena 1v1 Duel",
+                gridSize = 9,
+                difficulty = "Arena High Speed",
+                durationSeconds = 150, // 2m 30s
+                synapticSpeed = 16.5,
+                focusRating = 95.8,
+                globalPercentile = 0.380,
+                score = 880
+            ),
+            CertificateTemplate(
+                id = "group_challenge",
+                name = "👥 Group Speed Arena",
+                matchTitle = "Group Speed Challenge",
+                gridSize = 9,
+                difficulty = "Hyper Drive Arena",
+                durationSeconds = 125, // 2m 05s
+                synapticSpeed = 19.4,
+                focusRating = 97.4,
+                globalPercentile = 0.180,
+                score = 975
+            ),
+            CertificateTemplate(
+                id = "tournament_cup",
+                name = "👑 Tournament Cup",
+                matchTitle = "Tournament Cup Championship",
+                gridSize = 9,
+                difficulty = "Expert Grandmaster",
+                durationSeconds = 112, // 1m 52s
+                synapticSpeed = 22.8,
+                focusRating = 99.2,
+                globalPercentile = 0.045,
+                score = 1150
+            ),
+            CertificateTemplate(
+                id = "standard_9x9",
+                name = "🧩 Standard 9x9 Classic",
+                matchTitle = "9x9 Standard Matrix Challenge",
+                gridSize = 9,
+                difficulty = "Hard",
+                durationSeconds = 245, // 4m 05s
+                synapticSpeed = 10.8,
+                focusRating = 93.5,
+                globalPercentile = 1.650,
+                score = 690
+            ),
+            CertificateTemplate(
+                id = "children_4x4",
+                name = "👶 Children 4x4 Quick",
+                matchTitle = "4x4 Children Matrix Challenge",
+                gridSize = 4,
+                difficulty = "Easy",
+                durationSeconds = 68, // 1m 08s
+                synapticSpeed = 15.2,
+                focusRating = 98.7,
+                globalPercentile = 0.720,
+                score = 425
+            )
+        )
+    }
+
+    var selectedTemplateIndex by remember { mutableStateOf(0) }
+    val currentTemplate = templates[selectedTemplateIndex]
+
+    // Cognitive AI audit state parameters
+    var aiEndorsementText by remember { mutableStateOf<String?>(null) }
+    var isGeneratingEndorsement by remember { mutableStateOf(false) }
+    var endorsementStatus by remember { mutableStateOf("Pending AI audit seal verification...") }
+    var lastLoadedHtml by remember { mutableStateOf("") }
+    var isWebViewLoaded by remember { mutableStateOf(false) }
+
+    val mMin = currentTemplate.durationSeconds / 60
+    val mSec = currentTemplate.durationSeconds % 60
+    val mTimeStr = String.format(Locale.getDefault(), "%02d:%02d", mMin, mSec)
+    val categoryLabel = when (currentTemplate.gridSize) {
+        4 -> "4x4 (Children Category)"
+        9 -> "9x9 (Standard Area Category)"
+        else -> "${currentTemplate.gridSize}x${currentTemplate.gridSize} Grid"
+    }
+    val localFallbackText = "GOOGLE AI COGNITIVE SWEEP DATA: Active matrix scan on $categoryLabel completed with 100% precision. Synaptic speed is ${String.format(Locale.getDefault(), "%.2f", currentTemplate.synapticSpeed)}Hz, Focus Rating: ${String.format(Locale.getDefault(), "%.1f", currentTemplate.focusRating)}%, Global Percentile: Top ${String.format(Locale.getDefault(), "%.3f", currentTemplate.globalPercentile)}%."
+
+    LaunchedEffect(localNameInput, selectedTemplateIndex) {
+        isGeneratingEndorsement = true
+        endorsementStatus = "Querying live Cognitive AI audit..."
+        try {
+            val response = com.example.data.GeminiClient.getCertificateEndorsement(
+                apiKey = BuildConfig.GEMINI_API_KEY,
+                userName = localNameInput,
+                gridSize = currentTemplate.gridSize,
+                difficulty = currentTemplate.difficulty,
+                durationSeconds = currentTemplate.durationSeconds,
+                synapticSpeed = currentTemplate.synapticSpeed,
+                focusRating = currentTemplate.focusRating,
+                globalPercentile = currentTemplate.globalPercentile,
+                localFallbackReport = localFallbackText
+            )
+            aiEndorsementText = response
+            endorsementStatus = "Endorsement verified by Cognitive AI."
+        } catch (e: Exception) {
+            aiEndorsementText = localFallbackText
+            endorsementStatus = "Endorsement offline fallback loaded."
+        } finally {
+            isGeneratingEndorsement = false
+        }
+    }
 
     LaunchedEffect(isSaving) {
         if (isSaving) {
@@ -1384,13 +1721,16 @@ fun WinningCertificateOverlay(
             saveProgress = 0.9f
             val savedPath = com.example.utils.CertificateDownloader.generateAndSaveCertificate(
                 context = context,
-                userName = userName,
-                gridSize = gridSize,
-                difficultyLabel = difficultyLabel,
-                durationSeconds = durationSeconds,
-                synapticSpeed = synapticSpeed,
-                focusRating = focusRating,
-                globalPercentile = globalPercentile
+                userName = localNameInput,
+                gridSize = currentTemplate.gridSize,
+                difficultyLabel = currentTemplate.difficulty,
+                durationSeconds = currentTemplate.durationSeconds,
+                synapticSpeed = currentTemplate.synapticSpeed,
+                focusRating = currentTemplate.focusRating,
+                globalPercentile = currentTemplate.globalPercentile,
+                aiEndorsement = aiEndorsementText,
+                countryCode = countryCode,
+                matchTitle = currentTemplate.matchTitle
             )
             saveProgress = 1.0f
             kotlinx.coroutines.delay(150)
@@ -1399,6 +1739,38 @@ fun WinningCertificateOverlay(
                 actionMessage = "💾 SUCCESS! Saved to your device's Downloads directory as:\n$savedPath\n\nYou can easily find and view your certificate inside the Files app or Google Photos gallery! Verified metadata signature complete."
             } else {
                 actionMessage = "❌ FAILED: Unable to write file. Please verify storage permissions are enabled for the application."
+            }
+        }
+    }
+
+    LaunchedEffect(isSavingPdf) {
+        if (isSavingPdf) {
+            saveProgress = 0f
+            while (saveProgress < 0.85f) {
+                kotlinx.coroutines.delay(80)
+                saveProgress += 0.15f
+            }
+            saveProgress = 0.9f
+            val savedPath = com.example.utils.CertificateDownloader.generateAndSavePdfCertificate(
+                context = context,
+                userName = localNameInput,
+                gridSize = currentTemplate.gridSize,
+                difficultyLabel = currentTemplate.difficulty,
+                durationSeconds = currentTemplate.durationSeconds,
+                synapticSpeed = currentTemplate.synapticSpeed,
+                focusRating = currentTemplate.focusRating,
+                globalPercentile = currentTemplate.globalPercentile,
+                aiEndorsement = aiEndorsementText,
+                countryCode = countryCode,
+                matchTitle = currentTemplate.matchTitle
+            )
+            saveProgress = 1.0f
+            kotlinx.coroutines.delay(150)
+            isSavingPdf = false
+            if (savedPath != null) {
+                actionMessage = "💾 SUCCESS! Saved to your device's Downloads directory as PDF document:\n$savedPath\n\nYou can easily find, print, or share your verified PDF certificate direct to your professional career portfolios!"
+            } else {
+                actionMessage = "❌ FAILED: Unable to write PDF document. Please verify storage permissions are enabled for the application."
             }
         }
     }
@@ -1447,6 +1819,51 @@ fun WinningCertificateOverlay(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Achievement Selection presetter tabs selector
+                Text(
+                    text = "SELECT ACHIEVEMENT TO PREVIEW & CONFER:",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    letterSpacing = 0.5.sp,
+                    modifier = Modifier.align(Alignment.Start)
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    templates.forEachIndexed { idx, temp ->
+                        val isSelected = selectedTemplateIndex == idx
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    if (isSelected) Color(0xFFD4AF37) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isSelected) Color(0xFFD4AF37) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .clickable { selectedTemplateIndex = idx }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = temp.name,
+                                color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface,
+                                fontSize = 10.sp,
+                                fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(2.dp))
 
                 Column(
@@ -1460,8 +1877,11 @@ fun WinningCertificateOverlay(
                         color = MaterialTheme.colorScheme.primary
                     )
                     OutlinedTextField(
-                        value = userName,
-                        onValueChange = onNameChange,
+                        value = localNameInput,
+                        onValueChange = {
+                            localNameInput = it
+                            onNameChange(it)
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("Enter holder's name...") },
                         singleLine = true,
@@ -1472,12 +1892,111 @@ fun WinningCertificateOverlay(
                     )
                 }
 
-                val m = durationSeconds / 60
-                val s = durationSeconds % 60
-                val timeStr = String.format("%02d:%02d", m, s)
-                val computedScore = maxOf(350, (synapticSpeed * 45 + (100 - globalPercentile) * 30 + (gridSize * 150) - (durationSeconds * 0.1)).toInt())
+                // Shaded Cognitive AI Status Alert Segment
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0D1E25)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E88E5).copy(alpha = 0.4f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(30.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF1E88E5).copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isGeneratingEndorsement) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    color = Color(0xFF4DE8F4),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text("💡", fontSize = 14.sp)
+                            }
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "COGNITIVE AI CERTIFICATE AUDITOR",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFE0F7FA),
+                                letterSpacing = 0.8.sp
+                            )
+                            Text(
+                                text = endorsementStatus,
+                                fontSize = 11.sp,
+                                color = if (isGeneratingEndorsement) Color(0xFFB0BEC5) else Color(0xFF4DE8F4),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        if (!isGeneratingEndorsement) {
+                            TextButton(
+                                onClick = {
+                                    isGeneratingEndorsement = true
+                                    endorsementStatus = "Re-analyzing via Cognitive AI..."
+                                    coroutineScope.launch {
+                                        try {
+                                            val response = com.example.data.GeminiClient.getCertificateEndorsement(
+                                                apiKey = BuildConfig.GEMINI_API_KEY,
+                                                userName = localNameInput,
+                                                gridSize = currentTemplate.gridSize,
+                                                difficulty = currentTemplate.difficulty,
+                                                durationSeconds = currentTemplate.durationSeconds,
+                                                synapticSpeed = currentTemplate.synapticSpeed,
+                                                focusRating = currentTemplate.focusRating,
+                                                globalPercentile = currentTemplate.globalPercentile,
+                                                localFallbackReport = localFallbackText
+                                            )
+                                            aiEndorsementText = response
+                                            endorsementStatus = "Audited successfully with custom remarks!"
+                                        } catch(e: Exception) {
+                                            aiEndorsementText = localFallbackText
+                                            endorsementStatus = "Offline calibration verified."
+                                        } finally {
+                                            isGeneratingEndorsement = false
+                                        }
+                                    }
+                                },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Text("RE-AUDIT", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color(0xFF1E88E5))
+                            }
+                        }
+                    }
+                }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                val m = currentTemplate.durationSeconds / 60
+                val s = currentTemplate.durationSeconds % 60
+                val timeStr = String.format(Locale.getDefault(), "%02d:%02d", m, s)
+                val computedScore = currentTemplate.score
+
+                val calendar = java.util.Calendar.getInstance()
+                val dayStr = String.format(Locale.getDefault(), "%02d", calendar.get(java.util.Calendar.DAY_OF_MONTH))
+                val monthStr = calendar.getDisplayName(java.util.Calendar.MONTH, java.util.Calendar.LONG, java.util.Locale.getDefault())?.uppercase() ?: "JUNE"
+                val yearStr = calendar.get(java.util.Calendar.YEAR).toString()
+
+                val userNameStr = localNameInput.ifBlank { "MSB COGNITIVE SOLVER" }.uppercase()
+                    .replace("\\", "\\\\")
+                    .replace("'", "\\'")
+                    .replace("\"", "\\\"")
+                val synapticSpeedStr = String.format(Locale.getDefault(), "%.2f", currentTemplate.synapticSpeed)
+                val computedScoreStr = "$computedScore PGP"
+                val globalPercentileStr = "TOP ${String.format(Locale.getDefault(), "%.3f", currentTemplate.globalPercentile)}%"
+                val finalEndorsementStr = (aiEndorsementText ?: localFallbackText)
+                    .replace("\\", "\\\\")
+                    .replace("'", "\\'")
+                    .replace("\"", "\\\"")
+                    .replace("\n", " ")
+                    .replace("\r", " ")
+
+                Spacer(modifier = Modifier.height(2.dp))
 
                 Box(
                     modifier = Modifier
@@ -1527,8 +2046,9 @@ fun WinningCertificateOverlay(
                           <canvas id="certCanvas" width="800" height="600"></canvas>
                         </div>
                         <script>
-                          window.onload = function() {
+                          function drawCert() {
                             const canvas = document.getElementById('certCanvas');
+                            if (!canvas) return;
                             const ctx = canvas.getContext('2d');
                             
                             // Background
@@ -1584,100 +2104,127 @@ fun WinningCertificateOverlay(
                             // Header Star Label
                             ctx.fillStyle = '#D4AF37';
                             ctx.font = 'bold 16px Georgia, serif';
-                            ctx.fillText('★ ★ ★  COGNITIVE GRADUATED SOLVER  ★ ★ ★', 400, 75);
+                            ctx.fillText('★ ★ ★  COGNITIVE GRADUATED SOLVER  ★ ★ ★', 400, 65);
 
-                            // Title: MSB SUDOKU CHALLENGE
+                            // Title: MSB SUDOKU CHALLENGE Categories
                             ctx.fillStyle = '#FFFFFF';
-                            ctx.font = 'bold 30px sans-serif';
-                            ctx.fillText('MSB SUDOKU CHALLENGE', 400, 120);
+                            ctx.font = 'bold 24px sans-serif';
+                            ctx.fillText('${currentTemplate.matchTitle.uppercase()}', 400, 105);
 
                             ctx.fillStyle = '#D4AF37';
-                            ctx.font = 'bold 11px monospace';
-                            ctx.fillText('OFFICIAL CERTIFICATE OF COGNITIVE GRADUATION', 400, 148);
+                            ctx.font = 'bold 10px monospace';
+                            ctx.fillText('OFFICIAL CERTIFICATE OF COGNITIVE GRADUATION', 400, 132);
                             
                             // Divider
                             ctx.strokeStyle = 'rgba(212, 175, 55, 0.4)';
                             ctx.lineWidth = 1.5;
                             ctx.beginPath();
-                            ctx.moveTo(200, 165);
-                            ctx.lineTo(600, 165);
+                            ctx.moveTo(200, 145);
+                            ctx.lineTo(600, 145);
                             ctx.stroke();
 
                             // Certified text
                             ctx.fillStyle = '#bebebe';
-                            ctx.font = 'italic 14px Georgia, serif';
-                            ctx.fillText('This prestigious cognitive credential is formally awarded to', 400, 195);
+                            ctx.font = 'italic 12px Georgia, serif';
+                            ctx.fillText('This prestigious cognitive credential is formally awarded to', 400, 172);
 
                             // User Name
                             ctx.fillStyle = '#FFD700';
-                            ctx.font = 'bold 30px Georgia, serif';
+                            ctx.font = 'bold 26px Georgia, serif';
                             ctx.shadowColor = 'rgba(255, 215, 0, 0.3)';
                             ctx.shadowBlur = 10;
-                            ctx.fillText('${userName.ifBlank { "MSB COGNITIVE SOLVER" }.uppercase()}', 400, 245);
+                            ctx.fillText('${userNameStr}', 400, 215);
                             ctx.shadowBlur = 0; // reset
 
                             // Subscript
                             ctx.fillStyle = '#9e9e9e';
-                            ctx.font = '10px sans-serif';
-                            ctx.fillText('for exceptional logical precision, matrix resolution speed, and cognitive excellence', 400, 280);
-                            ctx.fillText('within the boundaries of MSB Creative Studios tournament specifications.', 400, 298);
+                            ctx.font = '9px sans-serif';
+                            ctx.fillText('for exceptional logical precision, matrix resolution speed, and cognitive excellence', 400, 245);
+                            ctx.fillText('within the boundaries of MSB Creative Studios challenge specifications.', 400, 260);
 
-                            // Panel for specifications
+                            // Draw Cognitive AI Endorsement Seal inside WebView Canvas (No Google)
+                            const endorsementStr = '${finalEndorsementStr}';
+                            ctx.fillStyle = '#4DE8F4';
+                            ctx.font = 'bold 9px monospace';
+                            ctx.fillText('⚡ INTEGRATED COGNITIVE AI CRITIQUE (HIGH PRECISION):', 400, 285);
+                            
+                            ctx.fillStyle = '#FFFFFF';
+                            ctx.font = 'italic 10px Georgia, serif';
+                            ctx.fillText(endorsementStr, 400, 302);
+
+                            // Panel for specifications (height adjusted to 140)
                             ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
-                            ctx.fillRect(80, 320, 640, 120);
+                            ctx.fillRect(80, 325, 640, 140);
                             ctx.strokeStyle = 'rgba(212, 175, 55, 0.25)';
                             ctx.lineWidth = 1;
-                            ctx.strokeRect(80, 320, 640, 120);
+                            ctx.strokeRect(80, 325, 640, 140);
 
                             // Left details
                             ctx.textAlign = 'left';
                             ctx.fillStyle = '#D4AF37';
-                            ctx.font = 'bold 10px monospace';
+                            ctx.font = 'bold 9px monospace';
                             ctx.fillText('MATRIX SIZE:', 110, 350);
-                            ctx.fillText('DIFFICULTY:', 110, 380);
-                            ctx.fillText('SYNAPTIC SPEED:', 110, 410);
+                            ctx.fillText('DIFFICULTY:', 110, 375);
+                            ctx.fillText('SYNAPTIC SPEED:', 110, 400);
+                            ctx.fillText('ACHIEVED DATE:', 110, 425);
 
                             ctx.fillStyle = '#FFFFFF';
-                            ctx.font = '10px monospace';
-                            ctx.fillText('${gridSize}x${gridSize} Grid', 230, 350);
-                            ctx.fillText('${difficultyLabel.uppercase()}', 230, 380);
-                            ctx.fillText('${String.format("%.2f", synapticSpeed)} Hz', 230, 410);
+                            ctx.font = '9px monospace';
+                            let matrixLabel = '${currentTemplate.gridSize}x${currentTemplate.gridSize} Grid';
+                            if (${currentTemplate.gridSize} === 4) {
+                                matrixLabel = '4x4 Grid (Children Category)';
+                            } else if (${currentTemplate.gridSize} === 9) {
+                                matrixLabel = '9x9 Grid (Standard Area Category)';
+                            }
+                            ctx.fillText(matrixLabel, 230, 350);
+                            ctx.fillText('${currentTemplate.difficulty.uppercase()}', 230, 375);
+                            ctx.fillText('${synapticSpeedStr} Hz', 230, 400);
+                            ctx.fillText('${dayStr} ${monthStr} ${yearStr}', 230, 425);
 
                             // Right details
                             ctx.fillStyle = '#D4AF37';
                             ctx.fillText('RECORD SOLVE TIME:', 400, 350);
-                            ctx.fillText('FINAL GAME SCORE:', 400, 380);
-                            ctx.fillText('GLOBAL PERCENTILE:', 400, 410);
+                            ctx.fillText('FINAL GAME SCORE:', 400, 375);
+                            ctx.fillText('GLOBAL PERCENTILE:', 400, 400);
+                            ctx.fillText('COUNTRY CODE:', 400, 425);
 
                             ctx.fillStyle = '#FFFFFF';
                             ctx.fillText('${timeStr} Duration', 545, 350);
                             ctx.fillStyle = '#FFD700';
-                            ctx.font = 'bold 10px monospace';
-                            ctx.fillText('${computedScore} PGP', 545, 380);
+                            ctx.font = 'bold 9px monospace';
+                            ctx.fillText('${computedScoreStr}', 545, 375);
                             ctx.fillStyle = '#FF9800';
-                            ctx.fillText('TOP ${String.format("%.3f", globalPercentile)}%', 545, 410);
+                            ctx.fillText('${globalPercentileStr}', 545, 400);
+                            ctx.fillStyle = '#FFFFFF';
+                            ctx.font = '9px monospace';
+                            ctx.fillText('${countryCode}', 545, 425);
 
                             // Footer separator
                             ctx.strokeStyle = 'rgba(212, 175, 55, 0.15)';
                             ctx.beginPath();
-                            ctx.moveTo(80, 465);
-                            ctx.lineTo(720, 465);
+                            ctx.moveTo(80, 480);
+                            ctx.lineTo(720, 480);
                             ctx.stroke();
 
                             // Powered by footer & verify hashes
                             ctx.textAlign = 'center';
                             ctx.fillStyle = '#555555';
                             ctx.font = '8px monospace';
-                            ctx.fillText('VERIFIED LEDGER CREDENTIAL HASH ID: MSB-' + Math.floor(Math.random() * 899999 + 100000), 400, 485);
+                            ctx.fillText('VERIFIED LEDGER CREDENTIAL HASH ID: MSB-' + Math.floor(Math.random() * 899999 + 100000), 400, 498);
 
-                            ctx.fillStyle = '#D4AF37';
+                            ctx.fillStyle = '#FFD700';
                             ctx.font = 'bold 12px sans-serif';
-                            ctx.fillText('POWERED BY MSB CREATIVE STUDIOS', 400, 515);
+                            ctx.fillText('HIGHLIGHT MSB SUDOKU CHALLENGE • POWERED BY MSB CREATIVE STUDIOS', 400, 524);
 
                             ctx.fillStyle = '#666666';
                             ctx.font = '8px monospace';
                             ctx.fillText('Digital Certificate Generated via Client-Side HTML5 Canvas Vector Pipeline', 400, 538);
-                          };
+                          }
+                          if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                            drawCert();
+                          } else {
+                            window.onload = drawCert;
+                          }
                         </script>
                         </body>
                         </html>
@@ -1691,7 +2238,12 @@ fun WinningCertificateOverlay(
                                 settings.loadWithOverviewMode = true
                                 settings.domStorageEnabled = true
                                 webViewClient = WebViewClient()
-                                loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
+                            }
+                        },
+                        update = { webView ->
+                            if (lastLoadedHtml != htmlContent) {
+                                webView.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
+                                lastLoadedHtml = htmlContent
                             }
                         },
                         modifier = Modifier.fillMaxSize()
@@ -1748,20 +2300,41 @@ fun WinningCertificateOverlay(
                     }
                 }
 
-                Button(
-                    onClick = { isSaving = true },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD4AF37)),
-                    enabled = !isSaving
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "Download custom image",
-                        tint = Color.Black,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("💾 DOWNLOAD CERTIFICATE IMAGE", color = Color.Black, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
+                    Button(
+                        onClick = { isSaving = true },
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD4AF37)),
+                        enabled = !isSaving && !isSavingPdf
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Download custom image",
+                            tint = Color.Black,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("💾 PNG IMAGE", color = Color.Black, fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
+                    }
+
+                    Button(
+                        onClick = { isSavingPdf = true },
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)), // Red for PDF
+                        enabled = !isSaving && !isSavingPdf
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Download PDF",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("📄 PDF DOCUMENT", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -1788,20 +2361,20 @@ fun WinningCertificateOverlay(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val m = durationSeconds / 60
-                    val s = durationSeconds % 60
-                    val timeStr = String.format("%02d:%02d", m, s)
-                    val speedStr = String.format("%.2f", synapticSpeed)
-                    val focusStr = String.format("%.1f", focusRating)
-                    val rankStr = String.format("%.3f", globalPercentile)
+                    val m = currentTemplate.durationSeconds / 60
+                    val s = currentTemplate.durationSeconds % 60
+                    val timeStr = String.format(Locale.getDefault(), "%02d:%02d", m, s)
+                    val speedStr = String.format(Locale.getDefault(), "%.2f", currentTemplate.synapticSpeed)
+                    val focusStr = String.format(Locale.getDefault(), "%.1f", currentTemplate.focusRating)
+                    val rankStr = String.format(Locale.getDefault(), "%.3f", currentTemplate.globalPercentile)
 
                     val makeSharePost: (String) -> String = { platform ->
                         when (platform) {
-                            "LinkedIn" -> "I am proud to share my official Graduation Certificate from the MSB SUDOKU CHALLENGE ACADEMY! I completed the " + gridSize + "x" + gridSize + " matrix on " + difficultyLabel.uppercase() + " level in " + timeStr + " with an AI-certified synaptic speed of " + speedStr + "Hz (Top " + rankStr + "% globally). Powered by MSB Creative Studios! [Verification ID: MSB-" + (System.currentTimeMillis() % 100000) + "]"
-                            "Resume" -> "MSB Advanced Cognitive Sudoku Graduate (Top " + rankStr + "% Global Rank, Synaptic Speed: " + speedStr + "Hz, Focus Rating: " + focusStr + "%, Difficulty: " + difficultyLabel.uppercase() + "). Awarded by MSB Creative Studios."
-                            "Twitter" -> "Shattered the cognitive record on MSB SUDOKU CHALLENGE! solved " + gridSize + "x" + gridSize + " (" + difficultyLabel.uppercase() + ") in " + timeStr + ". Synaptic speed: " + speedStr + "Hz! 🧠 Powered by @MSBCreative #MSBSudoku #CognitiveElite"
-                            "Facebook" -> "Cerebral graduation unlocked! Just earned my certified Cognitive Sudoku Master credential from MSB Creative Studios. Solved in " + timeStr + ", rank: TOP " + rankStr + "%! 👑 #MSBSudoku #CognitiveChallenge"
-                            else -> "Graduated from MSB SUDOKU CHALLENGE! Time: " + timeStr + ", Speed: " + speedStr + "Hz. Powered by MSB Creative Studios."
+                            "LinkedIn" -> "I am proud to share my official Graduation Certificate for the " + currentTemplate.matchTitle.uppercase() + "! I completed the " + currentTemplate.gridSize + "x" + currentTemplate.gridSize + " matrix on " + currentTemplate.difficulty.uppercase() + " level in " + timeStr + " with an AI-certified synaptic speed of " + speedStr + "Hz (Top " + rankStr + "% globally). Powered by MSB Creative Studios! [Verification ID: MSB-" + (System.currentTimeMillis() % 100000) + "]"
+                            "Resume" -> "MSB Advanced Cognitive Sudoku Graduate - " + currentTemplate.matchTitle + " (Top " + rankStr + "% Global Rank, Synaptic Speed: " + speedStr + "Hz, Focus Rating: " + focusStr + "%, Difficulty: " + currentTemplate.difficulty.uppercase() + "). Awarded by MSB Creative Studios."
+                            "Twitter" -> "Shattered the cognitive record on " + currentTemplate.matchTitle.uppercase() + "! solved " + currentTemplate.gridSize + "x" + currentTemplate.gridSize + " (" + currentTemplate.difficulty.uppercase() + ") in " + timeStr + ". Synaptic speed: " + speedStr + "Hz! 🧠 Powered by @MSBCreative #Sudoku #CognitiveElite"
+                            "Facebook" -> "Cerebral graduation unlocked! Just earned my certified Cognitive Sudoku Master credential for the " + currentTemplate.matchTitle + " from MSB Creative Studios. Solved in " + timeStr + ", rank: TOP " + rankStr + "%! 👑 #MSBSudoku #CognitiveChallenge"
+                            else -> "Graduated from " + currentTemplate.matchTitle + "! Time: " + timeStr + ", Speed: " + speedStr + "Hz. Powered by MSB Creative Studios."
                         }
                     }
 

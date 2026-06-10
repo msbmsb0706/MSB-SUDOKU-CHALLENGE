@@ -216,7 +216,7 @@ fun AuthWelcomeScreen(
             Spacer(modifier = Modifier.height(18.dp))
 
             Text(
-                text = "Register a secure global player profile to earn real-time PlayGold Points (PGP), unlock AI strategy reports, climb region leaderboards and claim Google Play reward codes seamlessly.",
+                text = "Register a secure global player profile to earn real-time PlayGold Points (PGP), unlock AI strategy reports, climb region leaderboards and claim certified cognitive achievements seamlessly.",
                 textAlign = TextAlign.Center,
                 fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -466,26 +466,7 @@ fun AuthLoginScreen(
                     .testTag("forgot_password_link")
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(
-                        text = "Authorized Admin Credentials:",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "• Email: msbcreativestudios@gmail.com\nAny password triggers secure SMS/Email OTP flow.",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
@@ -1064,8 +1045,8 @@ fun AuthRegisterScreen(
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                         Text(
-                                            text = "1. Reward Ownership\n" +
-                                                   "Accumulated PlayGold Points (PGP) are redeemable for Google Play Gift Cards under absolute user ownership and control.\n\n" +
+                                            text = "1. Skill Standing & Honors\n" +
+                                                   "Accumulated PlayGold Points (PGP) represent mathematical resolution stats, verified solving accuracy and highscores under absolute user ownership and control as elite cognitive markers.\n\n" +
                                                    "2. Competitive Latency Agreement\n" +
                                                    "Multiplayer lobbies utilize fair ping-matching metrics. Competitive interactions (sabotage, swaps, time penalties) are rate-limited to maintain espost sportsmanship.",
                                             fontSize = 11.sp,
@@ -1600,7 +1581,7 @@ fun AdminOtpScreen(
             Spacer(modifier = Modifier.height(14.dp))
 
             Text(
-                text = "We have transmitted a highly confidential 6-digit administrative one-time passcode to $email. Enter it below to unlock the secure Play Store dashboard.",
+                text = "We have transmitted a highly secure 6-digit verification code to $email. Enter it below to unlock the MSB Sudoku Arena Hub.",
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center,
                 lineHeight = 16.sp,
@@ -1636,20 +1617,20 @@ fun AdminOtpScreen(
             ) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "🔒 SECURE SMS/EMAIL SIMULATION PROXY",
+                        text = "🔒 SECURE VERIFICATION PROXY",
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 10.sp,
                         color = MaterialTheme.colorScheme.primary,
                         letterSpacing = 0.5.sp
                     )
                     Text(
-                        text = "In obedience with safe local verification guidelines, the simulated admin access code currently allocated to you is:",
+                        text = "In obedience with safe local verification guidelines, the simulated routing access code currently allocated to you is:",
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 14.sp
                     )
                     Text(
-                        text = "ADMIN OTP CODE: $generatedOtp",
+                        text = "SUDOKU ACCESS CODE: $generatedOtp",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
                         color = MaterialTheme.colorScheme.primary,

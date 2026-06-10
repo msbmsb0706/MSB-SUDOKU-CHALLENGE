@@ -152,31 +152,78 @@ class SudokuViewModel(
                     authState.value = AuthState.Welcome
                 }
             } ?: run {
-                val demoProfile = UserProfileEntity(
-                    userId = "msbcreativestudios@gmail.com",
-                    username = "MSB_Studio_Admin",
-                    region = "Asia-Pacific",
-                    xp = 9999,
-                    level = 99,
-                    playGoldPoints = 88888,
-                    gems = 999,
-                    gamesPlayed = 42,
-                    gamesWon = 42,
-                    passwordHash = "adminPass",
-                    securityQuestion = "What is our studio name?",
-                    securityAnswer = "MSB Creative",
-                    isLoggedIn = false
-                )
+                val hasSaved = prefs.contains("saved_username")
+                val demoProfile = if (hasSaved) {
+                    UserProfileEntity(
+                        userId = prefs.getString("saved_user_id", "msbcreativestudios@gmail.com") ?: "msbcreativestudios@gmail.com",
+                        username = prefs.getString("saved_username", "MSB_Studio_Admin") ?: "MSB_Studio_Admin",
+                        region = prefs.getString("saved_region", "Asia-Pacific") ?: "Asia-Pacific",
+                        countryName = prefs.getString("saved_country_name", "Singapore") ?: "Singapore",
+                        countryFlag = prefs.getString("saved_country_flag", "🇸🇬") ?: "🇸🇬",
+                        xp = prefs.getInt("saved_xp", 9999),
+                        level = prefs.getInt("saved_level", 99),
+                        playGoldPoints = prefs.getInt("saved_play_gold_points", 88888),
+                        gems = prefs.getInt("saved_gems", 999),
+                        gamesPlayed = prefs.getInt("saved_games_played", 42),
+                        gamesWon = prefs.getInt("saved_games_won", 42),
+                        passwordHash = "adminPass",
+                        securityQuestion = "What is our studio name?",
+                        securityAnswer = "MSB Creative",
+                        isLoggedIn = prefs.getBoolean("saved_is_logged_in", false)
+                    )
+                } else {
+                    UserProfileEntity(
+                        userId = "msbcreativestudios@gmail.com",
+                        username = "MSB_Studio_Admin",
+                        region = "Asia-Pacific",
+                        countryName = "Singapore",
+                        countryFlag = "🇸🇬",
+                        xp = 9999,
+                        level = 99,
+                        playGoldPoints = 88888,
+                        gems = 999,
+                        gamesPlayed = 42,
+                        gamesWon = 42,
+                        passwordHash = "adminPass",
+                        securityQuestion = "What is our studio name?",
+                        securityAnswer = "MSB Creative",
+                        isLoggedIn = false
+                    )
+                }
                 repository.saveUserProfile(demoProfile)
-                authState.value = AuthState.Welcome
+                if (demoProfile.isLoggedIn) {
+                    authState.value = AuthState.Authenticated
+                } else {
+                    authState.value = AuthState.Welcome
+                }
             }
 
-            // Observe user logging sessions reactively
+            // Observe user logging sessions reactively and save to SharedPreferences as master backup
             launch {
                 repository.userProfile.collect { profile ->
-                    if (profile != null && profile.isLoggedIn) {
-                        authState.value = AuthState.Authenticated
+                    if (profile != null) {
+                        prefs.edit().apply {
+                            putString("saved_username", profile.username)
+                            putString("saved_region", profile.region)
+                            putString("saved_country_name", profile.countryName)
+                            putString("saved_country_flag", profile.countryFlag)
+                            putString("saved_user_id", profile.userId)
+                            putInt("saved_xp", profile.xp)
+                            putInt("saved_level", profile.level)
+                            putInt("saved_play_gold_points", profile.playGoldPoints)
+                            putInt("saved_gems", profile.gems)
+                            putInt("saved_games_played", profile.gamesPlayed)
+                            putInt("saved_games_won", profile.gamesWon)
+                            putBoolean("saved_is_logged_in", profile.isLoggedIn)
+                            apply()
+                        }
+                        if (profile.isLoggedIn) {
+                            authState.value = AuthState.Authenticated
+                        } else {
+                            authState.value = AuthState.Welcome
+                        }
                     } else {
+                        prefs.edit().putBoolean("saved_is_logged_in", false).apply()
                         authState.value = AuthState.Welcome
                     }
                 }
@@ -194,7 +241,7 @@ class SudokuViewModel(
                 if (currentTx.isEmpty()) {
                     repository.addRewardTransaction(
                         RewardTransactionEntity(
-                            giftCardTitle = "$5 Google Play Voucher (Loyalty Reward)",
+                            giftCardTitle = "$5 Cognitive Master Voucher (Loyalty Reward)",
                             pointsCost = 10000,
                             timestamp = System.currentTimeMillis() - 86400000 * 2, // 2 days ago
                             status = "Active | Click to Copy",
@@ -204,7 +251,7 @@ class SudokuViewModel(
                     )
                     repository.addRewardTransaction(
                         RewardTransactionEntity(
-                            giftCardTitle = "$10 Google Play Voucher (Registration Bonus)",
+                            giftCardTitle = "$10 Cognitive Champion Voucher (Registration Bonus)",
                             pointsCost = 18000,
                             timestamp = System.currentTimeMillis() - 86400000 * 5, // 5 days ago
                             status = "Active | Click to Copy",
@@ -649,6 +696,18 @@ class SudokuViewModel(
         timerJob?.cancel()
     }
 
+    fun forfeitAndExitGame() {
+        timerJob?.cancel()
+        _grid.value = emptyList()
+        isGameOver.value = false
+        isGameWon.value = false
+        hasActiveDraft.value = false
+        selectedCell.value = null
+        viewModelScope.launch {
+            repository.clearActiveGame()
+        }
+    }
+
     private fun checkVictoryCondition() {
         val currentCells = _grid.value
         val solvedAll = currentCells.all { it.value == _solution.value[it.row][it.col] }
@@ -851,10 +910,15 @@ class SudokuViewModel(
 
     // --- Global Matchmaking competitive Arena Simulator ---
 
-    fun enterCompetitiveArena() {
+    fun enterCompetitiveArena(mode: String = "One-to-One") {
+        val buyInFee = when (mode) {
+            "Group Challenge" -> 8
+            "Tournament Cup" -> 12
+            else -> 5
+        }
         val currentGems = userProfile.value?.gems ?: 0
-        if (currentGems < 5) {
-            searchState.value = MatchmakingState.Error("Matchmaking requires at least 5 Gems to buy in entry.")
+        if (currentGems < buyInFee) {
+            searchState.value = MatchmakingState.Error("Matchmaking for $mode requires at least $buyInFee Gems to buy in entry.")
             return
         }
 
@@ -865,24 +929,28 @@ class SudokuViewModel(
             // Deduct buy-in entry fee
             val profile = repository.userProfile.first()
             if (profile != null) {
-                repository.saveUserProfile(profile.copy(gems = profile.gems - 5))
+                repository.saveUserProfile(profile.copy(gems = profile.gems - buyInFee))
             }
 
             // Simulate searching connection latency across multiple hubs
             delay(1000)
-            val randomOpponent = listOf(
-                Triple("Daisuke_Osaka", "Japan", "🇯🇵"),
-                Triple("Max_Prague", "Czech Republic", "🇨🇿"),
-                Triple("Maria_Madrid", "Spain", "🇪🇸"),
-                Triple("Emma_Sydney", "Australia", "🇦🇺"),
-                Triple("Sanjay_Delhi", "India", "🇮🇳"),
-                Triple("Kofi_Accra", "Ghana", "🇬🇭"),
-                Triple("Yuki_Tokyo", "Japan", "🇯🇵"),
-                Triple("Sophia_Athens", "Greece", "🇬🇷")
-            ).random()
+            val randomOpponent = when (mode) {
+                "Group Challenge" -> Triple("Lobby_Captain", "Ghana", "🇬🇭")
+                "Tournament Cup" -> Triple("Cup_Finals_Pool", "Greece", "🇬🇷")
+                else -> listOf(
+                    Triple("Daisuke_Osaka", "Japan", "🇯🇵"),
+                    Triple("Max_Prague", "Czech Republic", "🇨🇿"),
+                    Triple("Maria_Madrid", "Spain", "🇪🇸"),
+                    Triple("Emma_Sydney", "Australia", "🇦🇺"),
+                    Triple("Sanjay_Delhi", "India", "🇮🇳"),
+                    Triple("Kofi_Accra", "Ghana", "🇬🇭"),
+                    Triple("Yuki_Tokyo", "Japan", "🇯🇵"),
+                    Triple("Sophia_Athens", "Greece", "🇬🇷")
+                ).random()
+            }
 
             searchState.value = MatchmakingState.FoundOpponent(
-                opponentName = randomOpponent.first,
+                opponentName = if (mode == "One-to-One") randomOpponent.first else "$mode Grandmaster Pool",
                 opponentRegion = when (randomOpponent.second) {
                     "Japan", "India", "Australia" -> "Asia-Pacific"
                     "Czech Republic", "Spain", "Greece" -> "Europe"
@@ -900,14 +968,33 @@ class SudokuViewModel(
             var oppProg = 18
             var secsLeft = 45
             var nudgeLeft = 3
-            var nudgeMsg = "Multiplayer battle active! Solve as fast as possible!"
+            var nudgeMsg = when (mode) {
+                "Group Challenge" -> "5-Player Active LOBBY! Race to solve!"
+                "Tournament Cup" -> "ROUND 3: ACADEMY CHAMPIONSHIP FINALS!"
+                else -> "Multiplayer battle active! Solve as fast as possible!"
+            }
+
+            // Populate multiple opponents if not One-to-One
+            val opponentProgressesMap = mutableMapOf<String, Int>()
+            if (mode == "Group Challenge") {
+                opponentProgressesMap["Yuki_Tokyo"] = 18
+                opponentProgressesMap["Sophia_Athens"] = 12
+                opponentProgressesMap["Sven_Berlin"] = 15
+                opponentProgressesMap["Adebayo_Accra"] = 10
+            } else if (mode == "Tournament Cup") {
+                opponentProgressesMap["Sven_Berlin"] = 22
+                opponentProgressesMap["Max_Prague"] = 18
+                opponentProgressesMap["Sofia_Athens"] = 20
+            }
 
             searchState.value = MatchmakingState.SolvingConflict(
                 progressSelf = selfProg,
                 progressOpponent = oppProg,
                 secondsLeft = secsLeft,
                 lastNudgeMessage = nudgeMsg,
-                nudgeCountLeft = nudgeLeft
+                nudgeCountLeft = nudgeLeft,
+                opponentProgresses = opponentProgressesMap,
+                arenaMode = mode
             )
 
             while (selfProg < 100 && oppProg < 100 && secsLeft > 0) {
@@ -925,13 +1012,30 @@ class SudokuViewModel(
 
                 // Standard speed solving progress increments
                 selfProg += Random.nextInt(6, 12)
-                oppProg += Random.nextInt(5, 12)
+                
+                if (mode == "One-to-One") {
+                    oppProg += Random.nextInt(5, 12)
+                } else {
+                    // Update all map progress states
+                    opponentProgressesMap.keys.forEach { opponentKey ->
+                        val currentOppVal = opponentProgressesMap[opponentKey] ?: 10
+                        val increment = when (mode) {
+                            "Tournament Cup" -> Random.nextInt(7, 13) // Highly intensive
+                            else -> Random.nextInt(5, 12)
+                        }
+                        val newVal = (currentOppVal + increment).coerceAtMost(100)
+                        opponentProgressesMap[opponentKey] = newVal
+                    }
+                    // Sync main oppProg to the highest progress of any opponents in group
+                    oppProg = opponentProgressesMap.values.maxOrNull() ?: 18
+                }
 
                 // Opponent randomly uses "nudge back" to subtract your progress (nudge took player time)
                 if (Random.nextFloat() < 0.22f && selfProg > 15) {
                     val sabotage = Random.nextInt(8, 14)
                     selfProg = (selfProg - sabotage).coerceAtLeast(0)
-                    nudgeMsg = "Opponent Nudged you! Slashed ${sabotage}% progress! ⚠️"
+                    val sabotageOpponentName = if (mode == "One-to-One") randomOpponent.first else opponentProgressesMap.keys.shuffled().firstOrNull() ?: "Rival"
+                    nudgeMsg = "$sabotageOpponentName Nudged you! Slashed ${sabotage}% progress! ⚠️"
                 }
 
                 if (selfProg > 100) selfProg = 100
@@ -942,19 +1046,33 @@ class SudokuViewModel(
                     progressOpponent = oppProg,
                     secondsLeft = secsLeft,
                     lastNudgeMessage = nudgeMsg,
-                    nudgeCountLeft = nudgeLeft
+                    nudgeCountLeft = nudgeLeft,
+                    opponentProgresses = opponentProgressesMap.toMap(),
+                    arenaMode = mode
                 )
             }
 
             // Determine final outcome based on who finished closest to 100 or reached 100 first
             val hasWon = selfProg >= oppProg
             val elapsedSecs = 180 + (45 - secsLeft) * 4
-            val opponentSecs = if (hasWon) elapsedSecs + Random.nextInt(25, 55) else elapsedSecs - Random.nextInt(15, 35)
+            val opponentSecs = if (hasWon) elapsedSecs + Random.nextInt(35, 65) else elapsedSecs - Random.nextInt(15, 35)
 
-            // Reward Calculations
-            val pointsEarned = if (hasWon) Random.nextInt(80, 120) else -Random.nextInt(35, 60)
-            val playGoldEarned = if (hasWon) Random.nextInt(400, 650) else Random.nextInt(50, 100)
-            val gemsEarned = if (hasWon) Random.nextInt(8, 12) else 1
+            // Reward Calculations based on selected Arena Mode
+            val pointsEarned = when (mode) {
+                "Tournament Cup" -> if (hasWon) Random.nextInt(100, 150) else -Random.nextInt(35, 60)
+                "Group Challenge" -> if (hasWon) Random.nextInt(80, 130) else -Random.nextInt(30, 55)
+                else -> if (hasWon) Random.nextInt(70, 110) else -Random.nextInt(25, 45)
+            }
+            val playGoldEarned = when (mode) {
+                "Tournament Cup" -> if (hasWon) Random.nextInt(700, 950) else Random.nextInt(100, 180)
+                "Group Challenge" -> if (hasWon) Random.nextInt(450, 700) else Random.nextInt(80, 140)
+                else -> if (hasWon) Random.nextInt(300, 500) else Random.nextInt(50, 100)
+            }
+            val gemsEarned = when (mode) {
+                "Tournament Cup" -> if (hasWon) Random.nextInt(12, 18) else 2
+                "Group Challenge" -> if (hasWon) Random.nextInt(6, 10) else 1
+                else -> if (hasWon) Random.nextInt(3, 6) else 1
+            }
 
             // Apply results to database
             val user = repository.userProfile.first()
@@ -962,7 +1080,7 @@ class SudokuViewModel(
                 val newPoints = (2000 + (user.xp / 10)) + pointsEarned
                 val cappedPoints = if (newPoints < 1000) 1000 else newPoints
 
-                val resultingXp = user.xp + (if (hasWon) 120 else 40)
+                val resultingXp = user.xp + (if (hasWon) 150 else 50)
                 val newLvl = 1 + (resultingXp / 500)
 
                 val resultingPoints = user.playGoldPoints + playGoldEarned
@@ -989,13 +1107,13 @@ class SudokuViewModel(
                     difficulty = "ARENA",
                     timeElapsedSeconds = elapsedSecs.toLong(),
                     mistakeCount = 0,
-                    xpGained = if (hasWon) 120 else 40,
+                    xpGained = if (hasWon) 150 else 50,
                     pgpGained = playGoldEarned,
                     status = if (hasWon) "WON" else "LOST"
                 )
                 repository.insertGameHistory(history)
 
-                // Submit winning Arena times to real-time global leaderboard (Firestore REST API)
+                // Submit winning Arena times to real-time global leaderboard (Simulated offline)
                 if (hasWon) {
                     launch {
                         val flag = user.countryFlag ?: "🇺🇸"
@@ -1017,7 +1135,7 @@ class SudokuViewModel(
                 // Sync competitive database player representation
                 val updatedLby = LeaderboardPlayerEntity(
                     username = user.username,
-                    rank = 0,
+                    rank = 2,
                     points = cappedPoints,
                     region = user.region,
                     avatarColorSeed = 0xFF4CAF50.toInt(),
@@ -1033,7 +1151,7 @@ class SudokuViewModel(
                 pointsDelta = pointsEarned,
                 playGoldAwarded = playGoldEarned,
                 gemsAwarded = gemsEarned,
-                opponentName = (searchState.value as MatchmakingState.FoundOpponent).opponentName
+                opponentName = if (mode == "One-to-One") randomOpponent.first else "$mode Rivals"
             )
 
             launch { loadLeaderboard(regionFilter.value) }
@@ -1048,11 +1166,18 @@ class SudokuViewModel(
             if (current.nudgeCountLeft > 0) {
                 val newOppProg = (current.progressOpponent - 15).coerceAtLeast(0)
                 val newSelfProg = (current.progressSelf + 5).coerceAtMost(100)
+                
+                // Also subtract 15% from all sub-opponent progresses
+                val updatedOpponents = current.opponentProgresses.mapValues { (_, progress) ->
+                    (progress - 15).coerceAtLeast(0)
+                }
+
                 searchState.value = current.copy(
                     progressSelf = newSelfProg,
                     progressOpponent = newOppProg,
+                    opponentProgresses = updatedOpponents,
                     nudgeCountLeft = current.nudgeCountLeft - 1,
-                    lastNudgeMessage = "Sent Speed Nudge! Sabotaged opponent progress by -15%! 🚀"
+                    lastNudgeMessage = "Sent Speed Nudge! Sabotaged all tournament rivals by -15%! 🚀"
                 )
             }
         }
@@ -1234,6 +1359,24 @@ class SudokuViewModel(
         }
     }
 
+    private fun backupToPrefs(profile: UserProfileEntity) {
+        prefs.edit().apply {
+            putString("saved_username", profile.username)
+            putString("saved_region", profile.region)
+            putString("saved_country_name", profile.countryName)
+            putString("saved_country_flag", profile.countryFlag)
+            putString("saved_user_id", profile.userId)
+            putInt("saved_xp", profile.xp)
+            putInt("saved_level", profile.level)
+            putInt("saved_play_gold_points", profile.playGoldPoints)
+            putInt("saved_gems", profile.gems)
+            putInt("saved_games_played", profile.gamesPlayed)
+            putInt("saved_games_won", profile.gamesWon)
+            putBoolean("saved_is_logged_in", profile.isLoggedIn)
+            apply()
+        }
+    }
+
     fun registerUser(
         email: String,
         username: String,
@@ -1278,10 +1421,12 @@ class SudokuViewModel(
 
             if (secureOtpEnabled.value) {
                 repository.saveUserProfile(newProfile)
+                backupToPrefs(newProfile)
                 val generatedOtp = (100000..999999).random().toString()
                 authState.value = AuthState.OtpVerification(email, generatedOtp)
             } else {
                 repository.saveUserProfile(newProfile)
+                backupToPrefs(newProfile)
                 authState.value = AuthState.Authenticated
                 activeTab.value = 0
             }
@@ -1297,14 +1442,14 @@ class SudokuViewModel(
             } else {
                 UserProfileEntity(
                     userId = email,
-                    username = "MSB GRANDMASTER",
-                    region = "Asia-Pacific",
-                    countryName = "Singapore",
-                    countryFlag = "🇸🇬",
-                    xp = 750,
-                    level = 5,
-                    playGoldPoints = 12500,
-                    gems = 180,
+                    username = prefs.getString("saved_username", "MSB GRANDMASTER") ?: "MSB GRANDMASTER",
+                    region = prefs.getString("saved_region", "Asia-Pacific") ?: "Asia-Pacific",
+                    countryName = prefs.getString("saved_country_name", "Singapore") ?: "Singapore",
+                    countryFlag = prefs.getString("saved_country_flag", "🇸🇬") ?: "🇸🇬",
+                    xp = prefs.getInt("saved_xp", 750),
+                    level = prefs.getInt("saved_level", 5),
+                    playGoldPoints = prefs.getInt("saved_play_gold_points", 12500),
+                    gems = prefs.getInt("saved_gems", 180),
                     passwordHash = "googleSecurePass123",
                     securityQuestion = "Google Provider Login Status",
                     securityAnswer = "Verified",
@@ -1396,7 +1541,7 @@ class SudokuViewModel(
                 append("Region: ${profile.region}\n")
                 append("Current Level: ${profile.level} (XP: ${profile.xp})\n")
                 append("Gems Bank: ${profile.gems}\n")
-                append("Google PlayGold Points: ${profile.playGoldPoints}\n")
+                append("MSB PlayGold Points: ${profile.playGoldPoints}\n")
                 append("Games Completed: ${profile.gamesPlayed}\n")
                 append("Games Won: ${profile.gamesWon} (Win Rate: ${if (profile.gamesPlayed > 0) (profile.gamesWon * 100 / profile.gamesPlayed) else 0}%)\n")
                 append("Personal Bests:\n")
@@ -1447,7 +1592,7 @@ class SudokuViewModel(
                     swotWeaknesses = "Occasional microsecond hesitation on Hidden Quad cells."
                     swotOpportunities = "Enter elite arena matchmaking battles to multiply your PlayGold Points payouts."
                     swotThreats = "Overconfidence causing sudden unforced mistake strikes."
-                    trainingBlueprint = "- Compete in 3 Arena Speed Battles consecutively.\n- Complete 1 Expert puzzle in under 420 seconds.\n- Save 50,000 PGP to unlock a $50 Google Play Voucher code."
+                    trainingBlueprint = "- Compete in 3 Arena Speed Battles consecutively.\n- Complete 1 Expert puzzle in under 420 seconds.\n- Save 50,000 PGP to unlock a $50 Super-Master Achievement Medal."
                 } else if (profile.level > 5) {
                     localBadge = "🧠 TACTICAL BLOCK STRATEGIST"
                     localDesc = "You play with cautious elegance, prioritizing precise block deduction and candidate isolation schemes. You take your time but minimize unneeded mistakes."
@@ -1529,7 +1674,7 @@ class SudokuViewModel(
             "MSB_CHALLENGE" -> {
                 pointsReward = 5000
                 gemsReward = 50
-                title = "$5 Google Play Challenge Voucher"
+                title = "$5 Cognitive Arena Challenge Voucher"
             }
             "WELCOME_BONUS" -> {
                 pointsReward = 3000
@@ -1624,7 +1769,9 @@ sealed class MatchmakingState {
         val progressOpponent: Int,
         val secondsLeft: Int = 45,
         val lastNudgeMessage: String = "",
-        val nudgeCountLeft: Int = 3
+        val nudgeCountLeft: Int = 3,
+        val opponentProgresses: Map<String, Int> = emptyMap(),
+        val arenaMode: String = "One-to-One"
     ) : MatchmakingState()
     object MatchFinished : MatchmakingState()
     data class Error(val message: String) : MatchmakingState()
