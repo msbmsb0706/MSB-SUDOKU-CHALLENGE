@@ -1518,6 +1518,7 @@ fun ProfileScreenTab(viewModel: SudokuViewModel) {
     val isAnalyzing by viewModel.isAnalyzing.collectAsStateWithLifecycle()
     val selectedTheme by viewModel.selectedTheme.collectAsStateWithLifecycle()
     val isSoundEnabled by viewModel.isSoundEnabled.collectAsStateWithLifecycle()
+    val isMusicEnabled by viewModel.isMusicEnabled.collectAsStateWithLifecycle()
 
     SettingsPanel(
         userProfile = userProfile,
@@ -1531,7 +1532,9 @@ fun ProfileScreenTab(viewModel: SudokuViewModel) {
         onSaveProfile = { profile -> viewModel.saveProfile(profile) },
         onConnectSocial = { platform, handle -> viewModel.connectSocialMedia(platform, handle) },
         isSoundEnabled = isSoundEnabled,
-        onToggleSound = { viewModel.toggleSoundEnabled() }
+        onToggleSound = { viewModel.toggleSoundEnabled() },
+        isMusicEnabled = isMusicEnabled,
+        onToggleMusic = { viewModel.toggleMusicEnabled() }
     )
 }
 

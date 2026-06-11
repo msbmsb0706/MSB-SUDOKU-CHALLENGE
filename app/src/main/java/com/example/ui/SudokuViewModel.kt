@@ -53,9 +53,11 @@ class SudokuViewModel(
 
     // --- Sound Feedback Customizer Settings ---
     val isSoundEnabled = MutableStateFlow(prefs.getBoolean("is_sound_enabled", true))
+    val isMusicEnabled = MutableStateFlow(prefs.getBoolean("is_music_enabled", true))
 
     init {
         SoundManager.isSoundEnabled = isSoundEnabled.value
+        SoundManager.isMusicEnabled = isMusicEnabled.value
     }
 
     fun toggleSoundEnabled() {
@@ -63,6 +65,20 @@ class SudokuViewModel(
         isSoundEnabled.value = newValue
         prefs.edit().putBoolean("is_sound_enabled", newValue).apply()
         SoundManager.isSoundEnabled = newValue
+    }
+
+    fun toggleMusicEnabled() {
+        val newValue = !isMusicEnabled.value
+        isMusicEnabled.value = newValue
+        prefs.edit().putBoolean("is_music_enabled", newValue).apply()
+        SoundManager.isMusicEnabled = newValue
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        try {
+            SoundManager.isMusicEnabled = false
+        } catch (ignored: Exception) {}
     }
 
     // --- Screen Settings ---

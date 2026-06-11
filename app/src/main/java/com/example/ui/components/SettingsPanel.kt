@@ -46,6 +46,8 @@ fun SettingsPanel(
     onConnectSocial: (String, String) -> Unit = { _, _ -> },
     isSoundEnabled: Boolean = true,
     onToggleSound: () -> Unit = {},
+    isMusicEnabled: Boolean = true,
+    onToggleMusic: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var editUsername by remember { mutableStateOf("") }
@@ -752,7 +754,7 @@ fun SettingsPanel(
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -764,13 +766,13 @@ fun SettingsPanel(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = "Tactile Audio Feedback",
+                                text = "Tactile Audio & Music Feedback",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = "Hear satisfying acoustics for correct moves, warning buzzes for mistakes, and triumphant fanfares.",
+                                text = "Tune Satisfying sound effects for moves and mistakes, and high-fidelity ambient synthesizer music.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -780,9 +782,11 @@ fun SettingsPanel(
 
                 Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
 
+                // Sound Effects Toggle Switch
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
                         .clickable { onToggleSound() }
                         .padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -800,12 +804,12 @@ fun SettingsPanel(
                         }
                         Column {
                             Text(
-                                text = "Acoustic FX Status",
+                                text = "Acoustic FX (Sound Effects)",
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
-                                text = if (isSoundEnabled) "Enabled (High Frequency Synaptic)" else "Sound Muted",
+                                text = if (isSoundEnabled) "Enabled (Move and score chimes active)" else "Sound effects muted",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -820,7 +824,57 @@ fun SettingsPanel(
                             checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
                             uncheckedThumbColor = MaterialTheme.colorScheme.outline,
                             uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
+                        ),
+                        modifier = Modifier.testTag("sound_effects_toggle")
+                    )
+                }
+
+                Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+
+                // Background Music Toggle Switch
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onToggleMusic() }
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isMusicEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(if (isMusicEnabled) "📻" else "📴", fontSize = 18.sp)
+                            }
+                        }
+                        Column {
+                            Text(
+                                text = "Interactive BGM (Background Music)",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = if (isMusicEnabled) "Playing (Soft pentatonic ambient synth)" else "Music disabled",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Switch(
+                        checked = isMusicEnabled,
+                        onCheckedChange = { onToggleMusic() },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
+                            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        modifier = Modifier.testTag("bg_music_toggle")
                     )
                 }
             }
