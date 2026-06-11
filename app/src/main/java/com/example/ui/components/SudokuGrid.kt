@@ -41,9 +41,21 @@ fun SudokuGrid(
     hideLastRow: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val size = if (grid.size == 16) 4 else 9
-    val boxWidth = if (size == 4) 2 else 3
-    val boxHeight = if (size == 4) 2 else 3
+    val size = when (grid.size) {
+        9 -> 3
+        16 -> 4
+        else -> 9
+    }
+    val boxWidth = when (size) {
+        3 -> 3
+        4 -> 2
+        else -> 3
+    }
+    val boxHeight = when (size) {
+        3 -> 3
+        4 -> 2
+        else -> 3
+    }
 
     BoxWithConstraints(
         modifier = modifier
@@ -136,7 +148,7 @@ fun SudokuGrid(
                                         text = if (isHiddenDigit) "?" else cell.value.toString(),
                                         color = if (isHiddenDigit) Color(0xFFFF9800) else textColor,
                                         fontWeight = if (isHiddenDigit) FontWeight.Black else fontWeight,
-                                        fontSize = if (size == 4) 24.sp else 20.sp,
+                                        fontSize = if (size == 3) 28.sp else if (size == 4) 24.sp else 20.sp,
                                         textAlign = TextAlign.Center
                                     )
                                 } else if (cell.pencilNotes.isNotEmpty()) {
@@ -187,7 +199,26 @@ fun SudokuGrid(
 
 @Composable
 fun PencilNotesGrid(notes: Set<Int>, size: Int = 9) {
-    if (size == 4) {
+    if (size == 3) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(2.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            for (noteNum in 1..3) {
+                val showNote = notes.contains(noteNum)
+                Text(
+                    text = if (showNote) noteNum.toString() else " ",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Light,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    } else if (size == 4) {
         Column(
             modifier = Modifier
                 .fillMaxSize()

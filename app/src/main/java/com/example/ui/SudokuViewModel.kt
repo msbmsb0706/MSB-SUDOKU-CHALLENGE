@@ -416,7 +416,7 @@ class SudokuViewModel(
         viewModelScope.launch {
             val draft = repository.activeGame.first()
             if (draft != null && !draft.completed) {
-                val size = if (draft.puzzleStr.length == 16) 4 else 9
+                val size = if (draft.puzzleStr.length == 16) 4 else if (draft.puzzleStr.length == 9) 3 else 9
                 gridSize.value = size
                 
                 selectedDifficulty.value = SudokuDifficulty.values().find { it.label == draft.difficulty } ?: SudokuDifficulty.MEDIUM

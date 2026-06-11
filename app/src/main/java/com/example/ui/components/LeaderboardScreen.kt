@@ -175,7 +175,7 @@ fun LeaderboardScreen(
                             .padding(horizontal = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        listOf(9, 4).forEach { size ->
+                        listOf(9, 4, 3).forEach { size ->
                             val isSel = pvpGridSizeOption == size
                             val borderCol = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
                             val bgCol = if (isSel) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent
@@ -191,8 +191,12 @@ fun LeaderboardScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = if (size == 9) "🧩 Classic 9x9 Grid" else "👶 Kids 4x4 Grid",
-                                    fontSize = 11.sp,
+                                    text = when (size) {
+                                        9 -> "🧩 Classic 9x9"
+                                        4 -> "👶 Kids 4x4"
+                                        else -> "⚡ Mini 3x3"
+                                    },
+                                    fontSize = 10.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -1524,6 +1528,7 @@ fun LeaderboardScreen(
                                             onClick = {
                                                 val size = result.size
                                                 val diffLabel = "PVP " + when(result.size) {
+                                                    3 -> "Mini 3x3 Speed"
                                                     4 -> "Children 4x4 Quick"
                                                     else -> "Standard 9x9 Classic"
                                                 }

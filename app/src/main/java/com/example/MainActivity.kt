@@ -554,10 +554,14 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            listOf(4, 9).forEach { size ->
-                                val label = if (size == 4) "4x4 Quick Grid" else "9x9 Standard Matrix"
+                            listOf(3, 4, 9).forEach { size ->
+                                val label = when (size) {
+                                    3 -> "3x3 Mini Grid"
+                                    4 -> "4x4 Quick"
+                                    else -> "9x9 Classic"
+                                }
                                 val isSelected = gridSize == size
                                 Button(
                                     onClick = { viewModel.gridSize.value = size },
@@ -568,7 +572,7 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                                     modifier = Modifier.weight(1f).height(42.dp),
                                     contentPadding = PaddingValues(0.dp)
                                 ) {
-                                    Text(label, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Text(label, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                 }
                             }
                         }
@@ -1766,7 +1770,7 @@ fun WinningCertificateOverlay(
         CertificateTemplate(
             id = "latest_solve",
             name = "🏆 Live Solve (${gridSize}x${gridSize})",
-            matchTitle = if (gridSize == 4) "4x4 Children Grid Resolve" else "9x9 Standard Matrix Resolution",
+            matchTitle = if (gridSize == 3) "3x3 Mini Grid Resolve" else if (gridSize == 4) "4x4 Children Grid Resolve" else "9x9 Standard Matrix Resolution",
             gridSize = gridSize,
             difficulty = difficultyLabel,
             durationSeconds = durationSeconds,

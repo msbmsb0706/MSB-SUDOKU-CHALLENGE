@@ -18,6 +18,35 @@ object SudokuGenerator {
      * 2. The full correct solution (9x9 or 4x4 grid)
      */
     fun generate(difficulty: SudokuDifficulty, size: Int = 9): Pair<Array<IntArray>, Array<IntArray>> {
+        if (size == 3) {
+            val solution = Array(3) { IntArray(3) }
+            fillGrid3x3(solution)
+
+            val puzzle = Array(3) { r -> solution[r].clone() }
+
+            val cluesCount = when (difficulty) {
+                SudokuDifficulty.EASY -> 5
+                SudokuDifficulty.MEDIUM -> 4
+                SudokuDifficulty.HARD -> 3
+                SudokuDifficulty.EXPERT -> 2
+            }
+            val cellsToRemove = 9 - cluesCount
+
+            val random = Random.Default
+            val cellPositions = (0..8).shuffled(random).toMutableList()
+
+            var removedCount = 0
+            for (pos in cellPositions) {
+                if (removedCount >= cellsToRemove) break
+                val r = pos / 3
+                val c = pos % 3
+                puzzle[r][c] = 0
+                removedCount++
+            }
+
+            return Pair(puzzle, solution)
+        }
+
         if (size == 4) {
             val solution = Array(4) { IntArray(4) }
             fillGrid4x4(solution)
@@ -113,6 +142,37 @@ object SudokuGenerator {
             for (c in boxColStart until boxColStart + 2) {
                 if (grid[r][c] == num) return false
             }
+        }
+        return true
+    }
+
+    private fun fillGrid3x3(grid: Array<IntArray>): Boolean {
+        for (row in 0..2) {
+            for (col in 0..2) {
+                if (grid[row][col] == 0) {
+                    val numbers = (1..3).shuffled()
+                    for (num in numbers) {
+                        if (isValidPlacement3x3(grid, row, col, num)) {
+                            grid[row][col] = num
+                            if (fillGrid3x3(grid)) {
+                                return true
+                            }
+                            grid[row][col] = 0
+                        }
+                    }
+                    return false // Backtrack
+                }
+            }
+        }
+        return true
+    }
+
+    private fun isValidPlacement3x3(grid: Array<IntArray>, row: Int, col: Int, num: Int): Boolean {
+        for (c in 0..2) {
+            if (grid[row][c] == num) return false
+        }
+        for (r in 0..2) {
+            if (grid[r][col] == num) return false
         }
         return true
     }
