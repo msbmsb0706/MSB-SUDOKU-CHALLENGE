@@ -1255,6 +1255,20 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                                 Text("SOLVE ANOTHER MATRIX", fontWeight = FontWeight.Bold)
                             }
 
+                            Button(
+                                onClick = { viewModel.forfeitAndExitGame() },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                                modifier = Modifier.fillMaxWidth().height(48.dp).testTag("victory_main_menu_btn")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Home,
+                                    contentDescription = "Main Menu Icon",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("CHANGE GAME GRID / MAIN MENU", fontWeight = FontWeight.Bold)
+                            }
+
                             OutlinedButton(
                                 onClick = { viewModel.activeTab.value = 2 },
                                 modifier = Modifier.fillMaxWidth().height(44.dp)
