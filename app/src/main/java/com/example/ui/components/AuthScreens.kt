@@ -273,8 +273,9 @@ fun AuthWelcomeScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
                 modifier = Modifier
-                    .clickable { onLoginClick() } // Standard redirect triggers guest values too
+                    .clickable { viewModel.signInAsGuest() }
                     .padding(8.dp)
+                    .testTag("guest_bypass_btn")
             )
         }
     }
@@ -464,6 +465,22 @@ fun AuthLoginScreen(
                     .clickable { onResetPassClicked() }
                     .padding(8.dp)
                     .testTag("forgot_password_link")
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Continue on Guest Session instead",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.signInAsGuest() }
+                    .padding(8.dp)
+                    .testTag("login_guest_bypass_btn")
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -1262,6 +1279,22 @@ fun AuthRegisterScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Continue on Guest Session instead",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.signInAsGuest() }
+                    .padding(8.dp)
+                    .testTag("register_guest_bypass_btn")
             )
 
             Spacer(modifier = Modifier.height(20.dp))

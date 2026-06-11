@@ -1783,6 +1783,31 @@ class SudokuViewModel(
         }
     }
 
+    fun signInAsGuest() {
+        viewModelScope.launch {
+            repository.logOutAll()
+            val guestProfile = UserProfileEntity(
+                userId = "guest_player_" + (1000..9999).random() + "@msb.com",
+                username = "MSB_Guest_" + (1000..9999).random(),
+                region = "Asia-Pacific",
+                countryName = "Singapore",
+                countryFlag = "🇸🇬",
+                xp = 180,
+                level = 1,
+                playGoldPoints = 1500,
+                gems = 20,
+                passwordHash = "guestPass",
+                securityQuestion = "Guest Account Status",
+                securityAnswer = "Active",
+                isLoggedIn = true
+            )
+            repository.saveUserProfile(guestProfile)
+            backupToPrefs(guestProfile)
+            authState.value = AuthState.Authenticated
+            activeTab.value = 0
+        }
+    }
+
     fun requestRecoveryQuestion(email: String) {
         if (email.isBlank()) {
             forgetPasswordError.value = "Please input registered email directory."
