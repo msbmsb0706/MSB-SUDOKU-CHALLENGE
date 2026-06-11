@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
 import android.content.ClipboardManager
@@ -54,6 +55,9 @@ fun SettingsPanel(
     var linkedInInput by remember { mutableStateOf("") }
     var facebookInput by remember { mutableStateOf("") }
     var instagramInput by remember { mutableStateOf("") }
+    var editLinkedInUrl by remember { mutableStateOf("") }
+    var editInstagramUrl by remember { mutableStateOf("") }
+    var editFacebookUrl by remember { mutableStateOf("") }
     var connectingPlatform by remember { mutableStateOf<String?>(null) }
     var inputToConnect by remember { mutableStateOf("") }
     var feedbackMessage by remember { mutableStateOf("") }
@@ -76,6 +80,9 @@ fun SettingsPanel(
             selectedRegion = it.region
             editCountryName = it.countryName
             editCountryFlag = it.countryFlag
+            editLinkedInUrl = it.linkedInUrl
+            editInstagramUrl = it.instagramUrl
+            editFacebookUrl = it.facebookUrl
         }
     }
 
@@ -186,6 +193,156 @@ fun SettingsPanel(
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
                     )
+                }
+
+                // Profile Photo Upload and Selection Slot
+                val context = LocalContext.current
+                val pickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                    contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+                ) { uri: android.net.Uri? ->
+                    if (uri != null) {
+                        try {
+                            val inputStream = context.contentResolver.openInputStream(uri)
+                            if (inputStream != null) {
+                                val file = java.io.File(context.filesDir, "custom_profile_photo_${System.currentTimeMillis()}.jpg")
+                                val outputStream = java.io.FileOutputStream(file)
+                                inputStream.use { input ->
+                                    outputStream.use { output ->
+                                        input.copyTo(output)
+                                    }
+                                }
+                                userProfile?.let { profile ->
+                                    onSaveProfile(profile.copy(profilePhotoPath = file.absolutePath))
+                                }
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
+
+                var profilePhotoBitmap by remember(userProfile?.profilePhotoPath) {
+                    mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null)
+                }
+
+                LaunchedEffect(userProfile?.profilePhotoPath) {
+                    val path = userProfile?.profilePhotoPath
+                    if (!path.isNullOrBlank()) {
+                        try {
+                            val file = java.io.File(path)
+                            if (file.exists()) {
+                                val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+                                if (bitmap != null) {
+                                    profilePhotoBitmap = bitmap.asImageBitmap()
+                                }
+                            } else {
+                                profilePhotoBitmap = null
+                            }
+                        } catch (e: Exception) {
+                            profilePhotoBitmap = null
+                        }
+                    } else {
+                        profilePhotoBitmap = null
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .border(2.dp, MaterialTheme.colorScheme.primary, androidx.compose.foundation.shape.CircleShape)
+                            .clickable { pickerLauncher.launch("image/*") },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (profilePhotoBitmap != null) {
+                            androidx.compose.foundation.Image(
+                                bitmap = profilePhotoBitmap!!,
+                                contentDescription = "Profile Photo",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
+                        } else {
+                            val firstChar = (userProfile?.username ?: "M").firstOrNull()?.uppercase() ?: "M"
+                            Text(
+                                text = firstChar.toString(),
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+
+                        // Camera icon overlay indicator
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color.Black.copy(alpha = 0.5f))
+                                    .padding(vertical = 1.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Upload Photo",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(10.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "PROFILE PHOTO",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = 0.5.sp
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = if (userProfile?.profilePhotoPath.isNullOrBlank()) "No custom photo uploaded yet" else "Custom gaming avatar active",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(
+                                onClick = { pickerLauncher.launch("image/*") },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                modifier = Modifier.height(30.dp)
+                            ) {
+                                Text("SELECT PHOTO", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            }
+
+                            if (!userProfile?.profilePhotoPath.isNullOrBlank()) {
+                                TextButton(
+                                    onClick = {
+                                        userProfile?.let { profile ->
+                                            onSaveProfile(profile.copy(profilePhotoPath = ""))
+                                        }
+                                    },
+                                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                    modifier = Modifier.height(30.dp)
+                                ) {
+                                    Text("REMOVE", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
                 }
 
                 OutlinedTextField(
@@ -380,6 +537,47 @@ fun SettingsPanel(
                     )
                 }
 
+                // Direct Social Media profile/ID link fields
+                Text(
+                    text = "Social Profile Handles / ID Links:",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                OutlinedTextField(
+                    value = editLinkedInUrl,
+                    onValueChange = { editLinkedInUrl = it },
+                    label = { Text("LinkedIn URL / Profile ID") },
+                    leadingIcon = { Text("🔗", modifier = Modifier.padding(start = 8.dp)) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    placeholder = { Text("linkedin.com/in/username") }
+                )
+
+                OutlinedTextField(
+                    value = editInstagramUrl,
+                    onValueChange = { editInstagramUrl = it },
+                    label = { Text("Instagram @username / Profile ID") },
+                    leadingIcon = { Text("📸", modifier = Modifier.padding(start = 8.dp)) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    placeholder = { Text("@username or profile name") }
+                )
+
+                OutlinedTextField(
+                    value = editFacebookUrl,
+                    onValueChange = { editFacebookUrl = it },
+                    label = { Text("Facebook Profile Link / Username") },
+                    leadingIcon = { Text("👥", modifier = Modifier.padding(start = 8.dp)) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    placeholder = { Text("facebook.com/username") }
+                )
+
                 Text(
                     text = "Matchmaking Region (Leaderboard Division):",
                     style = MaterialTheme.typography.bodySmall,
@@ -430,7 +628,10 @@ fun SettingsPanel(
                                     username = editUsername.takeIf { u -> u.isNotBlank() } ?: "MSB_Player_One",
                                     region = selectedRegion,
                                     countryName = editCountryName,
-                                    countryFlag = editCountryFlag
+                                    countryFlag = editCountryFlag,
+                                    linkedInUrl = editLinkedInUrl,
+                                    instagramUrl = editInstagramUrl,
+                                    facebookUrl = editFacebookUrl
                                 )
                             )
                         }

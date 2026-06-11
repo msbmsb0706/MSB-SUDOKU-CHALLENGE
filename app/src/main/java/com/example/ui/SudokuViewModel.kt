@@ -1674,6 +1674,7 @@ class SudokuViewModel(
             putString("saved_user_id", profile.userId)
             putString("saved_phone_number", profile.phoneNumber)
             putString("saved_certificate_password", profile.certificatePassword)
+            putString("saved_profile_photo_path", profile.profilePhotoPath)
             putInt("saved_xp", profile.xp)
             putInt("saved_level", profile.level)
             putInt("saved_play_gold_points", profile.playGoldPoints)

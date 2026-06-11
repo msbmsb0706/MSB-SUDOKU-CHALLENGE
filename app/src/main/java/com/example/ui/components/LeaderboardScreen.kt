@@ -29,6 +29,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -359,6 +362,31 @@ fun LeaderboardScreen(
             // 3. User Current Standing Header
             if (userProfile != null) {
                 val rating = 2000 + (userProfile.xp / 10)
+                
+                var myPhotoBitmap by remember(userProfile.profilePhotoPath) {
+                    mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null)
+                }
+
+                LaunchedEffect(userProfile.profilePhotoPath) {
+                    if (!userProfile.profilePhotoPath.isNullOrBlank()) {
+                        try {
+                            val file = java.io.File(userProfile.profilePhotoPath)
+                            if (file.exists()) {
+                                val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+                                if (bitmap != null) {
+                                    myPhotoBitmap = bitmap.asImageBitmap()
+                                }
+                            } else {
+                                myPhotoBitmap = null
+                            }
+                        } catch (e: Exception) {
+                            myPhotoBitmap = null
+                        }
+                    } else {
+                        myPhotoBitmap = null
+                    }
+                }
+
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp),
                     modifier = Modifier
@@ -377,12 +405,21 @@ fun LeaderboardScreen(
                                 .background(Color(0xFF4CAF50)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "User avatar",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
+                            if (myPhotoBitmap != null) {
+                                Image(
+                                    bitmap = myPhotoBitmap!!,
+                                    contentDescription = "User avatar",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = "User avatar",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {

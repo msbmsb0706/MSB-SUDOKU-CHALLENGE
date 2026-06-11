@@ -42,7 +42,8 @@ data class UserProfileEntity(
     val countryName: String = "United States",
     val countryFlag: String = "🇺🇸",
     val phoneNumber: String = "",
-    val certificatePassword: String = ""
+    val certificatePassword: String = "",
+    val profilePhotoPath: String = ""
 )
 
 @Entity(tableName = "reward_transaction")
