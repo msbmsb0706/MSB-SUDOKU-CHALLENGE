@@ -382,6 +382,12 @@ class SudokuViewModel(
     // --- Sudoku Game Logic Methods ---
 
     fun startNewGame(difficulty: SudokuDifficulty, size: Int = gridSize.value) {
+        val profile = userProfile.value
+        val isGuest = profile?.userId?.startsWith("guest_player_") == true
+        if (isGuest && (profile?.gamesPlayed ?: 0) >= 1) {
+            showGuestLimitReachedDialog.value = true
+            return
+        }
         selectedDifficulty.value = difficulty
         gridSize.value = size
         timerJob?.cancel()
@@ -964,6 +970,12 @@ class SudokuViewModel(
     // --- Global Matchmaking competitive Arena Simulator ---
 
     fun enterCompetitiveArena(mode: String = "One-to-One", size: Int = gridSize.value) {
+        val profile = userProfile.value
+        val isGuest = profile?.userId?.startsWith("guest_player_") == true
+        if (isGuest && (profile?.gamesPlayed ?: 0) >= 1) {
+            showGuestLimitReachedDialog.value = true
+            return
+        }
         val buyInFee = when (mode) {
             "Group Challenge" -> 8
             "Tournament Cup" -> 12
@@ -1526,6 +1538,7 @@ class SudokuViewModel(
     // --- Google Play Reward Dashboard Interactions ---
 
     val claimingState = MutableStateFlow<ClaimingProgress>(ClaimingProgress.Idle)
+    val showGuestLimitReachedDialog = MutableStateFlow(false)
 
     fun claimGooglePlayGift(title: String, pointsCost: Int) {
         val points = userProfile.value?.playGoldPoints ?: 0

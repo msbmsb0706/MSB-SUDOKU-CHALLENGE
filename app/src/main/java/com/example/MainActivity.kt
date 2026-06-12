@@ -164,6 +164,7 @@ fun MainScaffold(viewModel: SudokuViewModel) {
     val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
     val levelUpValue by viewModel.levelUpEvent.collectAsStateWithLifecycle()
     val isSoundEnabled by viewModel.isSoundEnabled.collectAsStateWithLifecycle()
+    val showGuestLimitResult by viewModel.showGuestLimitReachedDialog.collectAsStateWithLifecycle()
 
     AuthStateContainer(viewModel = viewModel) {
         Scaffold(
@@ -230,6 +231,57 @@ fun MainScaffold(viewModel: SudokuViewModel) {
                 text = {
                     Text(
                         text = "Outstanding speed tactics! You have leveled up to Studio Level $lvl.\n\nSolve harder puzzles or dominate active arena lobbies to multiply your PlayGold Points and claim gift certificates!",
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                shape = RoundedCornerShape(16.dp)
+            )
+        }
+
+        // Guest session restrict warning dialog
+        if (showGuestLimitResult) {
+            AlertDialog(
+                onDismissRequest = { viewModel.showGuestLimitReachedDialog.value = false },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            viewModel.showGuestLimitReachedDialog.value = false
+                            viewModel.logOutCurrentSession()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        modifier = Modifier.fillMaxWidth().testTag("guest_limit_register_btn")
+                    ) {
+                        Text("CREATE VERIFIED ACCOUNT / LOGIN", fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { viewModel.showGuestLimitReachedDialog.value = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("CANCEL", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = "Lock Icon",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(48.dp)
+                    )
+                },
+                title = {
+                    Text(
+                        text = "GUEST TRIAL LIMIT REACHED",
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center
+                    )
+                },
+                text = {
+                    Text(
+                        text = "To guarantee global leaderboard validation integrity and build reliable player trust, guest sessions are strictly restricted to exactly 1 trial game.\n\nPlease register or log in with a secure, verified account to unlock unlimited high-fidelity puzzle lobbies, track career mental speed reports, and redeem premium Google Play reward certificates!",
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodyMedium
                     )
