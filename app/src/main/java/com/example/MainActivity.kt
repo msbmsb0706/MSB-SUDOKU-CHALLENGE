@@ -49,6 +49,10 @@ import com.example.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
 
+    override fun getAttributionTag(): String? {
+        return "default"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -1503,7 +1507,8 @@ fun RewardsScreenTab(viewModel: SudokuViewModel) {
         onClaimSelected = { title, cost -> viewModel.claimGooglePlayGift(title, cost) },
         onConfirmReceipt = { tx -> viewModel.confirmReceiptClaimedTransaction(tx) },
         onCancelClaim = { viewModel.cancelClaimMode() },
-        onRedeemPromoCode = { code, callback -> viewModel.redeemPromoCode(code, callback) }
+        onRedeemPromoCode = { code, callback -> viewModel.redeemPromoCode(code, callback) },
+        onNavigateToLeaderboard = { viewModel.activeTab.value = 1 }
     )
 }
 

@@ -27,11 +27,7 @@ object SoundManager {
         }
 
     init {
-        try {
-            ensureToneGenerator()
-        } catch (t: Throwable) {
-            Log.e("SoundManager", "Failed initializing ToneGenerator in init block safely: ${t.message}")
-        }
+        // Lazily initialize ToneGenerator only when sound effects are played to prevent early appops checks on headless hosts
     }
 
     private fun ensureToneGenerator(): ToneGenerator? {

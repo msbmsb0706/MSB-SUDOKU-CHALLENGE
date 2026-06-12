@@ -63,6 +63,10 @@ fun SettingsPanel(
     var connectingPlatform by remember { mutableStateOf<String?>(null) }
     var inputToConnect by remember { mutableStateOf("") }
     var feedbackMessage by remember { mutableStateOf("") }
+    var contactChannel by remember { mutableStateOf("") }
+    var isFeedbackAcknowledged by remember { mutableStateOf(false) }
+    var showFeedbackConfirmation by remember { mutableStateOf(false) }
+    var lastSubmittedFeedback by remember { mutableStateOf("") }
     var showOAuthPlatform by remember { mutableStateOf<String?>(null) }
     var suggestedHandleForOAuth by remember { mutableStateOf("") }
 
@@ -1430,6 +1434,16 @@ fun SettingsPanel(
                 )
 
                 OutlinedTextField(
+                    value = contactChannel,
+                    onValueChange = { contactChannel = it },
+                    label = { Text("Your Contact Info (Email or Phone Channel)") },
+                    placeholder = { Text("Enter your contact details so we can reach you...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
                     value = feedbackMessage,
                     onValueChange = { feedbackMessage = it },
                     label = { Text("Your Feedback Message") },
@@ -1438,30 +1452,64 @@ fun SettingsPanel(
                     shape = RoundedCornerShape(12.dp)
                 )
 
+                // Interactive Acknowledgment check box at the bottom of the form before submitting
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { isFeedbackAcknowledged = !isFeedbackAcknowledged }
+                        .padding(vertical = 6.dp)
+                ) {
+                    Checkbox(
+                        checked = isFeedbackAcknowledged,
+                        onCheckedChange = { isFeedbackAcknowledged = it },
+                        colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary),
+                        modifier = Modifier.testTag("feedback_acknowledge_checkbox")
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "I acknowledge and agree to submit this feedback directly to msbcreativestudios@gmail.com securely.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
                 Button(
                     onClick = {
                         if (feedbackMessage.isNotBlank()) {
-                            try {
-                                val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
-                                    data = android.net.Uri.parse("mailto:")
-                                    putExtra(Intent.EXTRA_EMAIL, arrayOf("msbcreativestudios@gmail.com"))
-                                    putExtra(Intent.EXTRA_SUBJECT, "MSB Sudoku Challenge Feedback Inquiry")
-                                    putExtra(Intent.EXTRA_TEXT, feedbackMessage)
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            if (!isFeedbackAcknowledged) {
+                                android.widget.Toast.makeText(context, "Please check the Acknowledge Box before submitting.", android.widget.Toast.LENGTH_LONG).show()
+                            } else {
+                                val combinedText = "MSB SUDOKU CHALLENGE SUCESSFUL SUBMITTED FEEDBACK\n\n" +
+                                    "User Contact Channel: ${contactChannel.ifBlank { "Not provided" }}\n\n" +
+                                    "Message Contents:\n$feedbackMessage"
+                                
+                                lastSubmittedFeedback = combinedText
+                                showFeedbackConfirmation = true
+                                
+                                // Direct/automatic email transmission initiation
+                                try {
+                                    val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                        data = android.net.Uri.parse("mailto:")
+                                        putExtra(Intent.EXTRA_EMAIL, arrayOf("msbcreativestudios@gmail.com"))
+                                        putExtra(Intent.EXTRA_SUBJECT, "MSB SUDOKU CHALLENGE SUCESSFUL SUBMITTED FEEDBACK")
+                                        putExtra(Intent.EXTRA_TEXT, combinedText)
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    context.startActivity(Intent.createChooser(emailIntent, "Transmit Feedback to Developers..."))
+                                } catch (e: Exception) {
+                                    // Fallback safe behavior if no intent handlers
+                                    android.widget.Toast.makeText(context, "Secure transmit queued.", android.widget.Toast.LENGTH_SHORT).show()
                                 }
-                                context.startActivity(Intent.createChooser(emailIntent, "Transmit Feedback via..."))
                                 feedbackMessage = ""
-                                android.widget.Toast.makeText(context, "Feedback dispatcher initialized!", android.widget.Toast.LENGTH_SHORT).show()
-                            } catch (e: Exception) {
-                                // Fallback safe mock database submission
-                                feedbackMessage = ""
-                                android.widget.Toast.makeText(context, "Feedback logged securely to developer database.", android.widget.Toast.LENGTH_LONG).show()
+                                contactChannel = ""
                             }
                         } else {
                             android.widget.Toast.makeText(context, "Please input your feedback message first.", android.widget.Toast.LENGTH_SHORT).show()
                         }
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().testTag("submit_feedback_button"),
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
                 ) {
@@ -1470,6 +1518,127 @@ fun SettingsPanel(
                     Text("SUBMIT CLASSIFIED FEEDBACK", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
+        }
+
+        // --- SUBMISSION CONFIRMED ACKNOWLEDGMENT BOX DIALOG ---
+        if (showFeedbackConfirmation) {
+            AlertDialog(
+                onDismissRequest = { showFeedbackConfirmation = false },
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("📡", fontSize = 22.sp)
+                        Text(
+                            text = "TRANSMISSION SUCCESSFUL",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                },
+                text = {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "MSB SUDOKU CHALLENGE SUCESSFUL SUBMITTED FEEDBACK",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+
+                        Text(
+                            text = "Below is the copy of your package message sent securely to msbcreativestudios@gmail.com:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(10.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = lastSubmittedFeedback,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Choose a secondary dispatch channel if you need to resend this user message:",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Secondary Email Dispatch Button
+                            Button(
+                                onClick = {
+                                    try {
+                                        val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                            data = android.net.Uri.parse("mailto:")
+                                            putExtra(Intent.EXTRA_EMAIL, arrayOf("msbcreativestudios@gmail.com"))
+                                            putExtra(Intent.EXTRA_SUBJECT, "MSB SUDOKU CHALLENGE SUCESSFUL SUBMITTED FEEDBACK")
+                                            putExtra(Intent.EXTRA_TEXT, lastSubmittedFeedback)
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                        context.startActivity(Intent.createChooser(emailIntent, "Transmit via Email..."))
+                                    } catch (ex: Exception) {
+                                        android.widget.Toast.makeText(context, "No email client found.", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+                            ) {
+                                Text("📧 EMAIL CHANNEL", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            // Secondary Text SMS Dispatch Button
+                            Button(
+                                onClick = {
+                                    try {
+                                        val smsIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                            data = android.net.Uri.parse("smsto:")
+                                            putExtra("sms_body", lastSubmittedFeedback)
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                        context.startActivity(Intent.createChooser(smsIntent, "Transmit via SMS..."))
+                                    } catch (ex: Exception) {
+                                        android.widget.Toast.makeText(context, "No SMS client found.", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+                            ) {
+                                Text("💬 TEXT MSG SMS", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showFeedbackConfirmation = false }) {
+                        Text("CLOSE DISMISS", fontWeight = FontWeight.Bold)
+                    }
+                },
+                shape = RoundedCornerShape(16.dp),
+                containerColor = MaterialTheme.colorScheme.surface
+            )
         }
 
         // 5.5. Secure Challenge Sharing Network

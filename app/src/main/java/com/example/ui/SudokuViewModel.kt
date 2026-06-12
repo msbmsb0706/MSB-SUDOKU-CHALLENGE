@@ -52,8 +52,8 @@ class SudokuViewModel(
     }
 
     // --- Sound Feedback Customizer Settings ---
-    val isSoundEnabled = MutableStateFlow(prefs.getBoolean("is_sound_enabled", true))
-    val isMusicEnabled = MutableStateFlow(prefs.getBoolean("is_music_enabled", true))
+    val isSoundEnabled = MutableStateFlow(prefs.getBoolean("is_sound_enabled", false))
+    val isMusicEnabled = MutableStateFlow(prefs.getBoolean("is_music_enabled", false))
 
     init {
         SoundManager.isSoundEnabled = isSoundEnabled.value
@@ -1540,11 +1540,24 @@ class SudokuViewModel(
         val claimCode = "GPLA-YMSB-" + (1..4).map { codeChars.random() }.joinToString("") + "-" + (1..4).map { codeChars.random() }.joinToString("")
 
         viewModelScope.launch {
-            // Deduct Points
+            // Deduct Points and credit Gems if applicable
             val profile = repository.userProfile.first()
             if (profile != null) {
+                var newGems = profile.gems
+                if (title.contains("25 Gems Booster")) {
+                    newGems += 25
+                } else if (title.contains("100 Gems Vault")) {
+                    newGems += 100
+                } else if (title.contains("Mistakes Shield")) {
+                    newGems += 5
+                } else if (title.contains("Mindfulness Ambiance")) {
+                    newGems += 10
+                }
                 repository.saveUserProfile(
-                    profile.copy(playGoldPoints = profile.playGoldPoints - pointsCost)
+                    profile.copy(
+                        playGoldPoints = profile.playGoldPoints - pointsCost,
+                        gems = newGems
+                    )
                 )
             }
 

@@ -40,6 +40,38 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * ==========================================================================================
+ * MSB SUDOKU CHALLENGE ACADEMY - REWARDS & COGNITIVE DASHBOARD
+ * ==========================================================================================
+ *
+ * This component acts as the central hub for gamified intellectual accomplishments, progress tracking,
+ * and value redemptions. Developed under modern Material Design 3 guidelines, it offers a visually
+ * rich UI that communicates technical milestones through gorgeous grids, micro-interactions, and 
+ * high-contrast color pairings.
+ *
+ * KEY ARCHITECTURAL RESPONSIBILITIES:
+ * ----------------------------------
+ * 1. STATUS HEADER:
+ *    Displays active profile parameters, level progression, and gamified experience (XP) levels.
+ *
+ * 2. SECURE WALLET:
+ *    Highlights PlayGold Points (PGP) and premium Gems balances. Shows progression towards milestones.
+ *
+ * 3. COGNITIVE SHOP & REDEMPTION STORE:
+ *    Allows solvers to translate their logical efforts (PGP) into premium in-app resources or simulated
+ *    digital gift certificates, processed securely via a compliance transceiver overlay.
+ *
+ * 4. CAREER & CV CERTIFICATION HUB:
+ *    Integrates the Google Gemini API to analyze personal puzzle speeds and draft customized cognitive 
+ *    endorsements. Supports exporting high-fidelity credentials as PNG/PDF certificates, and share intents.
+ *
+ * 5. COMPLIANCE TRANSCEIVER:
+ *    An animated multi-phase transaction validator simulation confirming secure SSL handshakes, anti-cheat,
+ *    and cryptographically synthesized voucher receipts.
+ * ==========================================================================================
+ */
+
 @Composable
 fun RewardsDashboard(
     playGoldPoints: Int,
@@ -52,10 +84,14 @@ fun RewardsDashboard(
     onConfirmReceipt: (RewardTransactionEntity) -> Unit,
     onCancelClaim: () -> Unit,
     onRedeemPromoCode: ((String, (String) -> Unit) -> Unit)? = null,
+    onNavigateToLeaderboard: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Utility to copy verification codes, certificate links, and CV captions to the device clipboard
     val clipboardManager = LocalClipboardManager.current
     var showCopiedToast by remember { mutableStateOf(false) }
+    
+    // Resolve ISO country codes dynamically based on selected user profile region settings
     val countryCode = when(userProfile?.region?.lowercase()) {
         "americas" -> "US"
         "europe" -> "DE"
@@ -72,7 +108,13 @@ fun RewardsDashboard(
                 .fillMaxSize()
                 .padding(12.dp)
         ) {
-            // 0. MSB Sudoku Hub & Status Header
+            /**
+             * ------------------------------------------------------------------------------
+             * 0. MSB SUDOKU HUB & STATUS HEADER
+             * ------------------------------------------------------------------------------
+             * Renders current user identities, level indicators, and an interactive XP bar.
+             * Safe level progression is estimated symmetrically based on wins and saved PlayGold Points.
+             */
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
@@ -98,14 +140,13 @@ fun RewardsDashboard(
                             .background(MaterialTheme.colorScheme.primary),
                         contentAlignment = Alignment.Center
                     ) {
-                        // Controllers visual accent
                         Text("🎮", fontSize = 22.sp)
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "MSB COGNITIVE ARENA HUB",
+                                    text = "MSB COGNITIVE ARENA HUB",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Black,
                                 color = MaterialTheme.colorScheme.primary,
@@ -132,7 +173,8 @@ fun RewardsDashboard(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(2.dp))
-                        // Progress bar for Level XP
+                        
+                        // Calculated XP limits and percentages to trigger leveling transitions gracefully
                         val currentLevel = userProfile?.level ?: 3
                         val wins = gameHistory.count { it.status == "WON" }
                         val currentXp = (wins * 350 + (playGoldPoints) / 4) % 1000
@@ -147,6 +189,7 @@ fun RewardsDashboard(
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF198754)
                             )
+                            // Linear indicator mirroring verified progression mathematically
                             LinearProgressIndicator(
                                 progress = { xpProgress },
                                 color = Color(0xFF198754),
@@ -155,7 +198,7 @@ fun RewardsDashboard(
                                     .weight(1f)
                                     .height(6.dp)
                                     .clip(CircleShape)
-                            )
+                             )
                             Text(
                                 text = "$currentXp / $targetXp XP",
                                 style = MaterialTheme.typography.bodySmall,
@@ -167,7 +210,13 @@ fun RewardsDashboard(
                 }
             }
 
-            // 1. Point Balance Card (High-fidelity glass surface)
+            /**
+             * ------------------------------------------------------------------------------
+             * 1. POINT BALANCE CARD (High-Fidelity Glass Surface)
+             * ------------------------------------------------------------------------------
+             * Standardized display for redeemable assets. It manages the user's primary points currency 
+             * (PlayGold Points) and Gem counts side-by-side inside custom rounded layouts.
+             */
             Card(
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
@@ -213,7 +262,7 @@ fun RewardsDashboard(
                                     text = String.format("%,d", playGoldPoints),
                                     fontSize = 28.sp,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFFFFC107) // Gold coin look
+                                    color = Color(0xFFFFC107)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
@@ -236,7 +285,7 @@ fun RewardsDashboard(
                                     text = gemsCount.toString(),
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFF00BCD4) // Cyan gem look
+                                    color = Color(0xFF00BCD4)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
@@ -249,7 +298,7 @@ fun RewardsDashboard(
                         }
                     }
 
-                    // MSB Cognitive Milestone progress gauge
+                    // Progress bar mapping current point metrics against next $5 threshold (10,000 points)
                     val targetPoints = 10000
                     val percentProgress = (playGoldPoints.toFloat() / targetPoints).coerceAtMost(1f)
                     Text(
@@ -269,7 +318,9 @@ fun RewardsDashboard(
                         trackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 2.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
@@ -290,7 +341,14 @@ fun RewardsDashboard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Safe, Genuine Google Rewards Educational Card & Store Intent Integration
+            /**
+             * ------------------------------------------------------------------------------
+             * SAFE, GENUINE EDUCATIONAL INFORMATION CARD
+             * ------------------------------------------------------------------------------
+             * Explicit educational guide teaching players about how point assets, ratings,
+             * and leaderboards verify authentic intellectual achievement while remaining fully compliant
+             * with competitive standards. Contains route navigation triggers directly to the main Arena.
+             */
             val context = androidx.compose.ui.platform.LocalContext.current
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -349,9 +407,7 @@ fun RewardsDashboard(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Button(
-                        onClick = {
-                            // Clear and trigger state leaderboard refresh
-                        },
+                        onClick = onNavigateToLeaderboard,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -365,7 +421,13 @@ fun RewardsDashboard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 2. MSB Cognitive Leaderboard Preview
+            /**
+             * ------------------------------------------------------------------------------
+             * 2. COGNITIVE LEADERBOARD MINI-PREVIEW
+             * ------------------------------------------------------------------------------
+             * Evaluates and sorts performance indices dynamically. Compares local profile score records 
+             * directly against a set on-device global solver roster in real-time.
+             */
             Text(
                 text = "🏆 COGNITIVE LEADERBOARD & PLAYER POINTS SYNC",
                 style = MaterialTheme.typography.titleMedium,
@@ -389,10 +451,11 @@ fun RewardsDashboard(
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { onNavigateToLeaderboard() }
                     .testTag("leaderboard_rewards_preview_card")
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    // Header row
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -408,7 +471,6 @@ fun RewardsDashboard(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), thickness = 1.dp)
                     Spacer(modifier = Modifier.height(6.dp))
 
-                    // Mock top list combined with local player
                     val currentUsername = userProfile?.username ?: "MSB GRANDMASTER"
                     val currentRegion = userProfile?.region ?: "Americas"
                     val mockTopList = listOf(
@@ -444,7 +506,7 @@ fun RewardsDashboard(
                                 maxLines = 1
                             )
                             Text(
-                                text = entry.third.second,
+                                    text = entry.third.second,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.width(90.dp),
@@ -464,7 +526,13 @@ fun RewardsDashboard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Promo Code Card
+            /**
+             * ------------------------------------------------------------------------------
+             * DEVELOPER PROMO CODE VAULT
+             * ------------------------------------------------------------------------------
+             * Allows players to inject preset debug coupons (e.g. WELCOME_BONUS, MSB_CHALLENGE) 
+             * to immediately update points and gems counts without puzzle completions.
+             */
             var promoCodeInput by remember { mutableStateOf("") }
             var promoResultMsg by remember { mutableStateOf<String?>(null) }
             var isPromoSuccess by remember { mutableStateOf(false) }
@@ -492,7 +560,9 @@ fun RewardsDashboard(
                         modifier = Modifier.padding(vertical = 4.dp)
                     )
                     Row(
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedTextField(
@@ -571,7 +641,13 @@ fun RewardsDashboard(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 3. Achievements Dashboard Header
+            /**
+             * ------------------------------------------------------------------------------
+             * 3. MILESTONES & ACTIVE METRICS HEADER
+             * ------------------------------------------------------------------------------
+             * Initializes calculation algorithms for consecutive wins, best times, speed badges, 
+             * and master designations based on user game histories.
+             */
             Text(
                 text = "ACHIEVEMENT MILESTONES & BADGES",
                 style = MaterialTheme.typography.titleSmall,
@@ -581,11 +657,9 @@ fun RewardsDashboard(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Calculate state metrics
             val consecutiveWins = remember(gameHistory) {
                 var maxStreak = 0
                 var currentStreak = 0
-                // Sort history by timestamp ascending to calculate streak over time
                 val sortedHistory = gameHistory.sortedBy { it.timestamp }
                 for (game in sortedHistory) {
                     if (game.status == "WON") {
@@ -621,7 +695,233 @@ fun RewardsDashboard(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(bottom = 80.dp)
             ) {
-                // Custom standalone Career Certificate and Resume / CV Hub
+                /**
+                 * ------------------------------------------------------------------------------
+                 * DYNAMIC BRAIN METRICS AND STATS CARD
+                 * ------------------------------------------------------------------------------
+                 * Reads user history models to output:
+                 * - Wins vs total played matches.
+                 * - Exact win percentages.
+                 * - Active puzzle-streak ratings.
+                 * - Estimated Synaptic Speed (measured in Hertz throughput).
+                 * - Personal Best time metrics for Easy, Medium, Hard, and Expert categories.
+                 */
+                item {
+                    val winsCount = remember(gameHistory) { gameHistory.count { it.status == "WON" } }
+                    val totalPlayed = gameHistory.size
+                    val winPercentage = if (totalPlayed > 0) (winsCount.toFloat() / totalPlayed * 100).toInt() else 0
+                    
+                    val bestEasy = userProfile?.bestTimeEasy ?: 0L
+                    val bestMedium = userProfile?.bestTimeMedium ?: 0L
+                    val bestHard = userProfile?.bestTimeHard ?: 0L
+                    val bestExpert = userProfile?.bestTimeExpert ?: 0L
+
+                    val level = userProfile?.level ?: 1
+
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.15f)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.35f),
+                                RoundedCornerShape(20.dp)
+                            )
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            ) {
+                                Text("📊", fontSize = 20.sp)
+                                Column {
+                                    Text(
+                                        text = "MY COGNITIVE BRAIN METRICS",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Black,
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        letterSpacing = 1.sp
+                                    )
+                                    Text(
+                                        text = "Real-time verification of your puzzle metrics",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                                    Text("Puzzles Solved", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("$winsCount / $totalPlayed", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                    Text("Win Ratio: $winPercentage%", fontSize = 9.sp, color = Color(0xFF4CAF50), fontWeight = FontWeight.SemiBold)
+                                }
+                                
+                                Box(modifier = Modifier
+                                    .width(1.dp)
+                                    .height(40.dp)
+                                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)))
+
+                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                                    Text("Max Win Streak", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("$consecutiveWins Wins", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF9800))
+                                    Text("Tactical Streak", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+
+                                Box(modifier = Modifier
+                                    .width(1.dp)
+                                    .height(40.dp)
+                                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)))
+
+                                val calculatedHz = remember(level, winsCount) {
+                                    8.5 + (level * 1.5) + (winsCount * 0.15).coerceAtMost(5.0)
+                                }
+                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                                    Text("Synaptic Speed", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(String.format(Locale.getDefault(), "%.2f Hz", calculatedHz), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00E5FF))
+                                    Text("Mental Throughput", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                text = "⏱️ PERSONAL BEST SOLVE DURATION RECORDS:",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.padding(bottom = 6.dp)
+                            )
+
+                            val formatTime: (Long) -> String = { sec ->
+                                if (sec <= 0) "No record" else "${sec / 60}m ${sec % 60}s"
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                val difficulties = listOf("Easy", "Medium", "Hard", "Expert")
+                                val times = listOf(bestEasy, bestMedium, bestHard, bestExpert)
+                                val colors = listOf(Color(0xFF81C784), Color(0xFFFFD54F), Color(0xFFFF8A65), Color(0xFFE57373))
+
+                                difficulties.forEachIndexed { idx, diff ->
+                                    Card(
+                                        colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.2f)),
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(6.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Text(diff.uppercase(), fontSize = 8.sp, fontWeight = FontWeight.Bold, color = colors[idx])
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(formatTime(times[idx]), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                /**
+                 * ------------------------------------------------------------------------------
+                 * 🎁 COGNITIVE PRODUCTS & REDEMPTION SHOP GRID
+                 * ------------------------------------------------------------------------------
+                 * Promotes dynamic exchanges for in-game enhancers like Gems boosters, active
+                 * puzzle-mistake shields, mindfulness background tracks, or $5/$10 Play Gift Vouchers.
+                 */
+                item {
+                    Text(
+                        text = "🎁 COGNITIVE SHOP & REDEMPTION STORE",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(top = 12.dp, bottom = 2.dp)
+                    )
+                    Text(
+                        text = "Exchange your earned PlayGold Points (PGP) to gain premium Gems or redeem simulated Google Play Gift Cards instantly.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+
+                item {
+                    val storeGifts = listOf(
+                        GiftItemData("🎁 $5 Google Play Card", 5000, "GIFT-CODE-$5"),
+                        GiftItemData("🎁 $10 Google Play Card", 10000, "GIFT-CODE-$10"),
+                        GiftItemData("💎 25 Gems Booster Pack", 1500, "GEMS-BOOST-25"),
+                        GiftItemData("💎 100 Gems Vault Combo", 5000, "GEMS-VAULT-100"),
+                        GiftItemData("🛡️ Mistakes Shield Pack", 1200, "SHIELD-SAVER-M"),
+                        GiftItemData("🎵 Mindfulness Ambiance Pass", 2000, "AMBIENT-MUSIC-BG")
+                    )
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        for (i in storeGifts.indices step 2) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    GiftCard(
+                                        gift = storeGifts[i],
+                                        userPoints = playGoldPoints,
+                                        onClaimSelected = onClaimSelected
+                                    )
+                                }
+                                if (i + 1 < storeGifts.size) {
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        GiftCard(
+                                            gift = storeGifts[i + 1],
+                                            userPoints = playGoldPoints,
+                                            onClaimSelected = onClaimSelected
+                                        )
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                /**
+                 * ------------------------------------------------------------------------------
+                 * CUSTOM STANDALONE CAREER CERTIFICATE AND RESUME / CV HUB
+                 * ------------------------------------------------------------------------------
+                 * A centerpiece feature. Generates academic certifications reflecting the solver's best
+                 * accomplishments on the Sudoku matrix.
+                 *
+                 * LOGICAL WORKFLOW:
+                 * 1. Dynamic Metric Assembly: Gathers best difficulty solved, shortest time duration,
+                 *    global percentile, estimated focus rating, and synaptic speed.
+                 * 2. Gemini Endorsement Integration: Triggers an asynchronous network query to Gemini AI via
+                 *    `GeminiClient.getCertificateEndorsement`, parsing stats to draft a customized academic
+                 *    endorsement code text block. Falls back to pre-formulated templates if offline.
+                 * 3. Export Operations: Downloader triggers render certificates instantly as on-device PNG or PDF,
+                 *    relying on `CertificateDownloader` utility methods inside the device's main Downloads folder.
+                 * 4. Social Integration: Provides structured clipboard caption templates for LinkedIn, Twitter,
+                 *    Facebook, and Instagram, auto-launching standard chooser Intents.
+                 */
                 item {
                     var hubStatusText by remember { mutableStateOf<String?>(null) }
                     var certNameInput by remember { mutableStateOf(userProfile?.username ?: "MSB GRANDMASTER") }
@@ -634,15 +934,15 @@ fun RewardsDashboard(
                     val hubDifficulty = bestGame?.difficulty ?: "Medium"
                     val hubDuration = if (bestGame != null && bestGame.timeElapsedSeconds > 0) bestGame.timeElapsedSeconds else 315L
 
+                    val hubFocusRating = remember(wonGames) {
+                        if (wonGames.isEmpty()) 92.5 else (92.5 + (wonGames.count() * 0.5)).coerceAtMost(99.9)
+                    }
+
                     val hubSynapticSpeed = remember(userProfile, wonGames) {
                         val lvl = userProfile?.level ?: 3
                         val base = 8.5 + (lvl * 1.5)
                         val variance = if (wonGames.isNotEmpty()) (wonGames.size * 0.15).coerceAtMost(5.0) else 1.2
                         base + variance
-                    }
-
-                    val hubFocusRating = remember(wonGames) {
-                        if (wonGames.isEmpty()) 92.5 else (92.5 + (wonGames.count() * 0.5)).coerceAtMost(99.9)
                     }
 
                     val hubGlobalPercentile = remember(userProfile, wonGames) {
@@ -659,13 +959,13 @@ fun RewardsDashboard(
                     val focusStr = String.format(Locale.getDefault(), "%.1f", hubFocusRating)
                     val rankStr = String.format(Locale.getDefault(), "%.3f", hubGlobalPercentile)
 
-                    // Cognitive AI audit state parameters for career hub
                     var aiEndorsementText by remember { mutableStateOf<String?>(null) }
                     var isGeneratingEndorsement by remember { mutableStateOf(false) }
                     var endorsementStatus by remember { mutableStateOf("Pending AI audit seal verification...") }
 
                     val localFallbackText = "COMMENDATION: Demonstrated supreme algorithmic pattern recognition. Solved a ${hubGridSize}x${hubGridSize} (${hubDifficulty.uppercase()}) matrix in ${timeStr} with ${String.format("%.2f", hubSynapticSpeed)}Hz average throughput."
 
+                    // Launches an audit event whenever name strings change
                     LaunchedEffect(certNameInput) {
                         isGeneratingEndorsement = true
                         endorsementStatus = "Querying live Cognitive AI audit..."
@@ -700,7 +1000,7 @@ fun RewardsDashboard(
                                 width = 1.dp,
                                 brush = Brush.horizontalGradient(
                                     colors = listOf(
-                                        Color(0xFFD4AF37), // Gold accent
+                                        Color(0xFFD4AF37),
                                         Color(0xFFE0C068),
                                         Color(0xFFFFD54F)
                                     )
@@ -746,21 +1046,25 @@ fun RewardsDashboard(
                                 }
                             }
 
-                            Spacer(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)))
+                            Spacer(modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)))
 
-                            // Custom Name input
                             Text(
                                 text = "CUSTOMIZE GRADUATE NAME:",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
-                                         OutlinedTextField(
+                            OutlinedTextField(
                                 value = certNameInput,
                                 onValueChange = { certNameInput = it },
                                 placeholder = { Text("e.g. MSB Solver", fontSize = 12.sp) },
                                 singleLine = true,
-                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
                                 textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = Color(0xFFD4AF37),
@@ -768,7 +1072,7 @@ fun RewardsDashboard(
                                 )
                             )
 
-                            // Shaded Cognitive AI Status Alert Segment for Career Hub
+                            // Auditor Status Alert Subpanel
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
@@ -817,7 +1121,7 @@ fun RewardsDashboard(
 
                             Spacer(modifier = Modifier.height(2.dp))
 
-                            // Download Action buttons
+                            // PNG Image Export Command Action Block
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -843,11 +1147,14 @@ fun RewardsDashboard(
                                         }
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD4AF37)),
-                                    modifier = Modifier.weight(1f).height(40.dp)
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(40.dp)
                                 ) {
                                     Text("💾 IMAGE (PNG)", color = Color.Black, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp)
                                 }
 
+                                // PDF Document Compile Command Action Block
                                 Button(
                                     onClick = {
                                         val path = com.example.utils.CertificateDownloader.generateAndSavePdfCertificate(
@@ -869,13 +1176,14 @@ fun RewardsDashboard(
                                         }
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
-                                    modifier = Modifier.weight(1f).height(40.dp)
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(40.dp)
                                 ) {
                                     Text("📄 PDF DIRECT", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp)
                                 }
                             }
 
-                            // Notification result panel
                             hubStatusText?.let { info ->
                                 Card(
                                     shape = RoundedCornerShape(8.dp),
@@ -908,9 +1216,11 @@ fun RewardsDashboard(
                                 }
                             }
 
-                            Spacer(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)))
+                            Spacer(modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)))
 
-                            // Resume Professional Title
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -951,7 +1261,6 @@ fun RewardsDashboard(
                                 )
                             }
 
-                            // Copy Resume Text & Quick Share Social Media buttons
                             Button(
                                 onClick = {
                                     try {
@@ -959,12 +1268,15 @@ fun RewardsDashboard(
                                         hubStatusText = "📋 COPIED CV CITATION! Copied verified academic Sudoku credentials code seamlessly to your clipboard."
                                     } catch (e: Exception) {}
                                 },
-                                modifier = Modifier.fillMaxWidth().height(36.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(36.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
                             ) {
                                 Text("📋 COPY PROFESSIONAL CV CITATION", fontWeight = FontWeight.Bold, fontSize = 10.sp)
                             }
 
+                            // Social Media post caption generator formatting and picker trigger launcher logic
                             Text(
                                 text = "QUICK POST CONVERTER (COPIES & CHOOSE APP):",
                                 fontSize = 9.sp,
@@ -1009,7 +1321,10 @@ fun RewardsDashboard(
                                         onClick = { triggerShare(plat) },
                                         colors = ButtonDefaults.buttonColors(containerColor = platformColors[idx]),
                                         contentPadding = PaddingValues(horizontal = 4.dp),
-                                        modifier = Modifier.weight(1f).padding(horizontal = 1.dp).height(32.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .padding(horizontal = 1.dp)
+                                            .height(32.dp),
                                         shape = RoundedCornerShape(6.dp)
                                     ) {
                                         Text(plat, color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold)
@@ -1020,7 +1335,7 @@ fun RewardsDashboard(
                     }
                 }
 
-                // Milestone 1: 10-Game Win Streak
+                // Milestone Badge 1: 10-Game Win Streak Tracker Card Layout
                 item {
                     val progress = (consecutiveWins / 10f).coerceIn(0f, 1f)
                     val isEarned = consecutiveWins >= 10
@@ -1096,7 +1411,7 @@ fun RewardsDashboard(
                     }
                 }
 
-                // Milestone 2: Speed Demon (Under 5 mins)
+                // Milestone Badge 2: Under 5 mins Speed Demon Tracker Card Layout
                 item {
                     val isEarned = isSpeedDemonEarned
                     Card(
@@ -1161,7 +1476,7 @@ fun RewardsDashboard(
                     }
                 }
 
-                // Milestone 3: Sudoku Master
+                // Milestone Badge 3: Sudoku Master Badge Card Layout
                 item {
                     val isEarned = isSudokuMasterEarned
                     Card(
@@ -1232,7 +1547,21 @@ fun RewardsDashboard(
             }
         }
 
-        // 4. Secure Verification Transaction Overlay Portal
+        /**
+         * ------------------------------------------------------------------------------
+         * 4. SECURE VERIFICATION TRANSACTION OVERLAY PORTAL
+         * ------------------------------------------------------------------------------
+         * Animated modal layout triggered during processing/claiming transactions.
+         * Communicates strict transaction integrity transparently through five consecutive automated phases:
+         *
+         * PHASES:
+         * 1. SECURING CHANNEL (SecuringChannel): Init SSL proxy handshakes.
+         * 2. CERTIFICATE HASHING (HashingCertificates): Runs on-device hashing on parameters & order numbers.
+         * 3. ANTI-CHEAT INQUEST (VerifyingAntiCheat): Visual audits parsing validation logs.
+         * 4. DECRYPTION (GeneratingGiftCode): Displays voucher code creation phases.
+         * 5. COMPLETED (ClaimCompleted): Presents final synthetic gift vouchers ready for clipboard copy.
+         * 6. SERVER ERROR (Error): Gracefully captures and notifies users about invalid balances or anomalies.
+         */
         AnimatedVisibility(
             visible = claimingState != ClaimingProgress.Idle,
             enter = fadeIn(),
@@ -1246,12 +1575,16 @@ fun RewardsDashboard(
                 contentAlignment = Alignment.Center
             ) {
                 Card(
-                    modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(24.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
@@ -1476,7 +1809,12 @@ fun RewardsDashboard(
             }
         }
 
-        // 5. Native custom Copy Confirmation Overlay Toast
+        /**
+         * ------------------------------------------------------------------------------
+         * 5. NATIVE CUSTOM COPY CONFIRMATION COGNITIVE TOAST
+         * ------------------------------------------------------------------------------
+         * Subtle dynamic transient confirmation pill. Clears itself cleanly using standard delays.
+         */
         AnimatedVisibility(
             visible = showCopiedToast,
             enter = fadeIn(),
@@ -1509,6 +1847,15 @@ fun RewardsDashboard(
     }
 }
 
+/**
+ * ------------------------------------------------------------------------------
+ * PREMIUM SHOP ITEM INFRASTRUCTURE CARD
+ * ------------------------------------------------------------------------------
+ * Individual product visual representation card template designed to handle:
+ * - Dynamic color highlight based on points affordability.
+ * - Point validation parameters preventing unearned redemption clicks.
+ * - TestTag assignment ensuring structured end-to-end user flows.
+ */
 @Composable
 fun GiftCard(
     gift: GiftItemData,
@@ -1589,6 +1936,9 @@ fun GiftCard(
     }
 }
 
+/**
+ * Data Schema representing individual redemption products in the cognitive store.
+ */
 data class GiftItemData(
     val title: String,
     val pointsCost: Int,
