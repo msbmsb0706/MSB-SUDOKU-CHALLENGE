@@ -267,7 +267,7 @@ fun AuthWelcomeScreen(
 
             // Guest Auto-bypass
             Text(
-                text = "Continue on Guest Session instead",
+                text = "Continue on Guest Session instead (Strict 1-Game Trial, Highly Restricted)",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
@@ -470,7 +470,7 @@ fun AuthLoginScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Continue on Guest Session instead",
+                text = "Continue on Guest Session instead (Strict 1-Game Trial, Highly Restricted)",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
@@ -1284,7 +1284,7 @@ fun AuthRegisterScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Continue on Guest Session instead",
+                text = "Continue on Guest Session instead (Strict 1-Game Trial, Highly Restricted)",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),

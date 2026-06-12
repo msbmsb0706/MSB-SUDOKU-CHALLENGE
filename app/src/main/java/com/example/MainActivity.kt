@@ -180,9 +180,16 @@ fun MainScaffold(viewModel: SudokuViewModel) {
                 )
             },
             bottomBar = {
+                val isGuest = userProfile?.userId?.startsWith("guest_player_") == true
                 BottomTabBar(
                     currentTab = activeTab,
-                    onTabSelected = { viewModel.activeTab.value = it }
+                    onTabSelected = { tabIndex ->
+                        if (isGuest && tabIndex != 0) {
+                            viewModel.showGuestLimitReachedDialog.value = true
+                        } else {
+                            viewModel.activeTab.value = tabIndex
+                        }
+                    }
                 )
             }
         ) { innerPadding ->
@@ -839,8 +846,15 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Prominent Outside Visible COGNITIVE CERTIFICATE PORTAL
+                val isGuest = userProfile?.userId?.startsWith("guest_player_") == true
                 Button(
-                    onClick = { showCertificateDialog = true },
+                    onClick = {
+                        if (isGuest) {
+                            viewModel.showGuestLimitReachedDialog.value = true
+                        } else {
+                            showCertificateDialog = true
+                        }
+                    },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD4AF37)),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1334,8 +1348,15 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
 
                             Spacer(modifier = Modifier.height(6.dp))
 
+                            val isGuest = userProfile?.userId?.startsWith("guest_player_") == true
                             Button(
-                                onClick = { showCertificateDialog = true },
+                                onClick = {
+                                    if (isGuest) {
+                                        viewModel.showGuestLimitReachedDialog.value = true
+                                    } else {
+                                        showCertificateDialog = true
+                                    }
+                                },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD4AF37)),
                                 modifier = Modifier.fillMaxWidth().height(48.dp)
                             ) {
@@ -1491,13 +1512,18 @@ fun ArenaScreenTab(viewModel: SudokuViewModel) {
             onToggleDisableGridHelpers = { viewModel.toggleDisableGridHelperLayers() },
             onToggleHideLastRow = { viewModel.toggleHideLastRowNumbers() },
             onClaimPvpCertificate = { size, diff, duration, speed, focus, percentile ->
-                pvpGridSize = size
-                pvpDifficultyLabel = diff
-                pvpDurationSeconds = duration
-                pvpSynapticSpeed = speed
-                pvpFocusRating = focus
-                pvpGlobalPercentile = percentile
-                showCertificateDialog = true
+                val isGuest = userProfile?.userId?.startsWith("guest_player_") == true
+                if (isGuest) {
+                    viewModel.showGuestLimitReachedDialog.value = true
+                } else {
+                    pvpGridSize = size
+                    pvpDifficultyLabel = diff
+                    pvpDurationSeconds = duration
+                    pvpSynapticSpeed = speed
+                    pvpFocusRating = focus
+                    pvpGlobalPercentile = percentile
+                    showCertificateDialog = true
+                }
             }
         )
 
@@ -1548,6 +1574,7 @@ fun RewardsScreenTab(viewModel: SudokuViewModel) {
 
     val pgp = userProfile?.playGoldPoints ?: 3200
     val gems = userProfile?.gems ?: 50
+    val isGuest = userProfile?.userId?.startsWith("guest_player_") == true
 
     RewardsDashboard(
         playGoldPoints = pgp,
@@ -1556,10 +1583,22 @@ fun RewardsScreenTab(viewModel: SudokuViewModel) {
         gameHistory = gameHistory,
         transactions = transactions,
         claimingState = claimingState,
-        onClaimSelected = { title, cost -> viewModel.claimGooglePlayGift(title, cost) },
+        onClaimSelected = { title, cost ->
+            if (isGuest) {
+                viewModel.showGuestLimitReachedDialog.value = true
+            } else {
+                viewModel.claimGooglePlayGift(title, cost)
+            }
+        },
         onConfirmReceipt = { tx -> viewModel.confirmReceiptClaimedTransaction(tx) },
         onCancelClaim = { viewModel.cancelClaimMode() },
-        onRedeemPromoCode = { code, callback -> viewModel.redeemPromoCode(code, callback) },
+        onRedeemPromoCode = { code, callback ->
+            if (isGuest) {
+                viewModel.showGuestLimitReachedDialog.value = true
+            } else {
+                viewModel.redeemPromoCode(code, callback)
+            }
+        },
         onNavigateToLeaderboard = { viewModel.activeTab.value = 1 }
     )
 }

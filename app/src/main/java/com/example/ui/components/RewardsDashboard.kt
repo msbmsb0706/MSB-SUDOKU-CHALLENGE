@@ -923,9 +923,73 @@ fun RewardsDashboard(
                  *    Facebook, and Instagram, auto-launching standard chooser Intents.
                  */
                 item {
-                    var hubStatusText by remember { mutableStateOf<String?>(null) }
-                    var certNameInput by remember { mutableStateOf(userProfile?.username ?: "MSB GRANDMASTER") }
-                    val context = androidx.compose.ui.platform.LocalContext.current
+                    val isGuest = userProfile?.userId?.startsWith("guest_player_") == true
+                    if (isGuest) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                    shape = RoundedCornerShape(20.dp)
+                                ),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f)
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFD4AF37).copy(alpha = 0.12f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Lock,
+                                        contentDescription = "Access Locked",
+                                        tint = Color(0xFFD4AF37),
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                }
+                                
+                                Text(
+                                    text = "🏆 COGNITIVE CREDENTIAL PORTAL LOCKED",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFFD4AF37),
+                                    textAlign = TextAlign.Center,
+                                    letterSpacing = 0.7.sp
+                                )
+                                
+                                Text(
+                                    text = "Official Cognitive Graduation Certificates and download/share credentials are fully deactivated inside guest trials to ensure validation integrity and player trust.\n\nPlease register or sign in with a secured, persistent profile to unlock high-prestige PDFs, generate verified speed records, and claim premium rewards!",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    lineHeight = 16.sp
+                                )
+                                
+                                Button(
+                                    onClick = { onClaimSelected("GUEST_RESTRICTION", 0) },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                    modifier = Modifier.fillMaxWidth().height(44.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("CREATE VERIFIED ACCOUNT / LOGIN", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                }
+                            }
+                        }
+                    } else {
+                        var hubStatusText by remember { mutableStateOf<String?>(null) }
+                        var certNameInput by remember { mutableStateOf(userProfile?.username ?: "MSB GRANDMASTER") }
+                        val context = androidx.compose.ui.platform.LocalContext.current
 
                     val wonGames = remember(gameHistory) { gameHistory.filter { it.status == "WON" } }
                     val bestGame = remember(wonGames) { wonGames.minByOrNull { it.timeElapsedSeconds } }
@@ -1333,6 +1397,7 @@ fun RewardsDashboard(
                             }
                         }
                     }
+                }
                 }
 
                 // Milestone Badge 1: 10-Game Win Streak Tracker Card Layout
