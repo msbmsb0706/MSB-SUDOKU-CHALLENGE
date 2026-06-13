@@ -61,6 +61,32 @@ private val VintageBronzeScheme = darkColorScheme(
     onSurface = Color(0xFFF5E4D7)
 )
 
+private val HighContrastPaperScheme = lightColorScheme(
+    primary = Color(0xFF0056C6),       // Royal High-Visibility Blue
+    secondary = Color(0xFF2E7D32),     // Crisp Green Focus
+    tertiary = Color(0xFFC62828),      // Accent alert Red
+    background = Color(0xFFFFFFFF),    // Ultra Pure White
+    surface = Color(0xFFF2F4F7),       // Soft Light Grey card
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onBackground = Color(0xFF000000),  // Deep crisp charcoal black
+    onSurface = Color(0xFF000000),
+    onSurfaceVariant = Color(0xFF2C3240)
+)
+
+private val EmeraldEyeShieldScheme = darkColorScheme(
+    primary = Color(0xFF00FF87),       // Vibrant Mint/Emerald
+    secondary = Color(0xFF64FFDA),     // Pale Neon Cyan
+    tertiary = Color(0xFFFF5252),      // Bright Coral Red
+    background = Color(0xFF0A120E),    // Deep Spruce Black - extremely eye-friendly
+    surface = Color(0xFF13221C),       // Dark Spruce Green Card
+    onPrimary = Color.Black,
+    onSecondary = Color.Black,
+    onBackground = Color(0xFFE8F5E9),  // Pale mint-white
+    onSurface = Color(0xFFE8F5E9),
+    onSurfaceVariant = Color(0xFFA5D6A7)
+)
+
 private val StandardDarkScheme = darkColorScheme(
     primary = Purple80,
     secondary = PurpleGrey80,
@@ -85,6 +111,8 @@ fun MyApplicationTheme(
         "Space AMOLED" -> SpaceAmoledScheme
         "Creative Light" -> CreativeLightScheme
         "Vintage Roasted Bronze" -> VintageBronzeScheme
+        "High Contrast Paper" -> HighContrastPaperScheme
+        "Emerald Eye-Shield" -> EmeraldEyeShieldScheme
         "System Theme" -> {
             if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val context = LocalContext.current

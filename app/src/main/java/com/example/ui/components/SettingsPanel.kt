@@ -687,7 +687,9 @@ fun SettingsPanel(
                     Triple("Matrix Cyberpunk", "Premium warm luxury dark scheme with gold/cyan layout.", listOf(Color(0xFFFFC107), Color(0xFF00BCD4), Color(0xFF0B0B0F))),
                     Triple("Space AMOLED", "Absolute battery-saving pitch dark black canvas.", listOf(Color(0xFFBB86FC), Color(0xFF03DAC6), Color(0xFF000000))),
                     Triple("Creative Light", "Bright clean professional canvas for daytime focus.", listOf(Color(0xFF3F51B5), Color(0xFFFF9800), Color(0xFFF4F5F9))),
-                    Triple("Vintage Roasted Bronze", "Warm dark earthy coffee theme for casual sessions.", listOf(Color(0xFFCD7F32), Color(0xFFFFD700), Color(0xFF160E08)))
+                    Triple("Vintage Roasted Bronze", "Warm dark earthy coffee theme for casual sessions.", listOf(Color(0xFFCD7F32), Color(0xFFFFD700), Color(0xFF160E08))),
+                    Triple("High Contrast Paper", "Daylight paper-like stark white theme with crystal-clear number definition.", listOf(Color(0xFF0056C6), Color(0xFF2E7D32), Color(0xFFFFFFFF))),
+                    Triple("Emerald Eye-Shield", "Scientifically-tuned mint/spruce green dark scheme for strain-free playing.", listOf(Color(0xFF00FF87), Color(0xFF64FFDA), Color(0xFF0A120E)))
                 )
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

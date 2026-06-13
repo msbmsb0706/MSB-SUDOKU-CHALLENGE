@@ -514,6 +514,7 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
     val userHasFinishedTournament by viewModel.userHasFinishedTournament.collectAsStateWithLifecycle()
     val disableGridHelpers by viewModel.disableGridHelperLayers.collectAsStateWithLifecycle()
     val hideLastRow by viewModel.hideLastRowNumbers.collectAsStateWithLifecycle()
+    val currentTheme by viewModel.selectedTheme.collectAsStateWithLifecycle()
 
     var showCertificateDialog by remember { mutableStateOf(false) }
     var certificateNameInput by remember { mutableStateOf("") }
@@ -600,6 +601,85 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
+
+                // Quick Theme Toggler card at the top for accessibility and eye comfort as requested!
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "👁️ ACCESS & EYE COMFORT THEME",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text(
+                                    text = currentTheme.uppercase(),
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            listOf(
+                                Triple("Creative Light", "☀️ LIGHT", Color(0xFF3F51B5)),
+                                Triple("Emerald Eye-Shield", "🌲 EYE-SAFE", Color(0xFF00FF87)),
+                                Triple("Matrix Cyberpunk", "🌙 DARK", Color(0xFFFFC107)),
+                                Triple("High Contrast Paper", "◑ STARK", Color(0xFF0056C6))
+                            ).forEach { (themeName, label, colorIndicator) ->
+                                val isSelected = currentTheme == themeName
+                                Button(
+                                    onClick = { viewModel.changeTheme(themeName) },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                        contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    ),
+                                    modifier = Modifier.weight(1f).height(38.dp),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .clip(CircleShape)
+                                                .background(colorIndicator)
+                                        )
+                                        Text(label, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 // Section A: Grid Matrix Dimension Selection (4x4 vs 9x9)
                 Card(
@@ -995,6 +1075,68 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(16.dp)
                             )
+                        }
+                    }
+                }
+
+                // 1.5. Inline Eye Comfort Theme Toggler during active game play as requested!
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "👁️ THEME: ",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .padding(2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        listOf(
+                            Triple("Creative Light", "☀️ LIGHT", Color(0xFF3F51B5)),
+                            Triple("Emerald Eye-Shield", "🌲 EYE-SAFE", Color(0xFF00FF87)),
+                            Triple("Matrix Cyberpunk", "🌙 DARK", Color(0xFFFFC107)),
+                            Triple("High Contrast Paper", "◑ STARK", Color(0xFF0056C6))
+                        ).forEach { (themeName, label, colorIndicator) ->
+                            val isSelected = currentTheme == themeName
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(
+                                        if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
+                                    )
+                                    .clickable { viewModel.changeTheme(themeName) }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .clip(CircleShape)
+                                            .background(colorIndicator)
+                                    )
+                                    Text(
+                                        text = label,
+                                        fontSize = 8.8.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         }
                     }
                 }

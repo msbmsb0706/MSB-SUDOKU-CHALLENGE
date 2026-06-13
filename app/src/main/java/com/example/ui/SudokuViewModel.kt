@@ -193,7 +193,13 @@ class SudokuViewModel(
         viewModelScope.launch {
             repository.userProfile.first()?.let { profile ->
                 if (profile.isLoggedIn) {
-                    authState.value = AuthState.Authenticated
+                    val isGuestList = profile.userId.startsWith("guest_player_")
+                    if (isGuestList && prefs.getBoolean("persistent_guest_blocked", false)) {
+                        repository.logOutAll()
+                        authState.value = AuthState.Welcome
+                    } else {
+                        authState.value = AuthState.Authenticated
+                    }
                 } else {
                     authState.value = AuthState.Welcome
                 }
@@ -238,7 +244,13 @@ class SudokuViewModel(
                 }
                 repository.saveUserProfile(demoProfile)
                 if (demoProfile.isLoggedIn) {
-                    authState.value = AuthState.Authenticated
+                    val isGuestList = demoProfile.userId.startsWith("guest_player_")
+                    if (isGuestList && prefs.getBoolean("persistent_guest_blocked", false)) {
+                        repository.logOutAll()
+                        authState.value = AuthState.Welcome
+                    } else {
+                        authState.value = AuthState.Authenticated
+                    }
                 } else {
                     authState.value = AuthState.Welcome
                 }
@@ -384,9 +396,13 @@ class SudokuViewModel(
     fun startNewGame(difficulty: SudokuDifficulty, size: Int = gridSize.value) {
         val profile = userProfile.value
         val isGuest = profile?.userId?.startsWith("guest_player_") == true
-        if (isGuest && (profile?.gamesPlayed ?: 0) >= 1) {
-            showGuestLimitReachedDialog.value = true
-            return
+        if (isGuest) {
+            if (prefs.getBoolean("guest_game_started", false) || (profile?.gamesPlayed ?: 0) >= 1) {
+                showGuestLimitReachedDialog.value = true
+                return
+            }
+            prefs.edit().putBoolean("guest_game_started", true).apply()
+            prefs.edit().putBoolean("persistent_guest_blocked", true).apply()
         }
         selectedDifficulty.value = difficulty
         gridSize.value = size
@@ -972,9 +988,13 @@ class SudokuViewModel(
     fun enterCompetitiveArena(mode: String = "One-to-One", size: Int = gridSize.value) {
         val profile = userProfile.value
         val isGuest = profile?.userId?.startsWith("guest_player_") == true
-        if (isGuest && (profile?.gamesPlayed ?: 0) >= 1) {
-            showGuestLimitReachedDialog.value = true
-            return
+        if (isGuest) {
+            if (prefs.getBoolean("guest_game_started", false) || (profile?.gamesPlayed ?: 0) >= 1) {
+                showGuestLimitReachedDialog.value = true
+                return
+            }
+            prefs.edit().putBoolean("guest_game_started", true).apply()
+            prefs.edit().putBoolean("persistent_guest_blocked", true).apply()
         }
         val buyInFee = when (mode) {
             "Group Challenge" -> 8
@@ -1141,29 +1161,17 @@ class SudokuViewModel(
                 // Simulated Opponent nudging back randomly to slow down your focus rating
                 if (Random.nextFloat() < 0.15f && selfProg > 10) {
                     val sabotage = Random.nextInt(5, 10)
-                    selfProg = (selfProg - sabotage).coerceAtLeast(0)
-                    
                     val currentConflict = searchState.value
                     if (currentConflict is MatchmakingState.SolvingConflict) {
-                        val updatedGrid = currentConflict.pvpGrid.map { cell ->
-                            if (!cell.isClue && cell.value > 0 && Random.nextFloat() < 0.3f) {
-                                cell.copy(value = 0)
-                            } else cell
-                        }
-                        val countCorrect = updatedGrid.count { !it.isClue && it.value > 0 && it.value == currentConflict.pvpSolution[it.row * size + it.col] }
-                        selfProg = if (totalBlank > 0) (countCorrect * 100 / totalBlank) else 0
-
                         val targetName = if (mode == "One-to-One") randomOpponent.first else opponentProgressesMap.keys.shuffled().firstOrNull() ?: "Rival"
-                        chatLogItems.add("$targetName: Sent a quick nudge to confuse you! ⚠️ Slashed some cells!")
-                        nudgeMsg = "$targetName Nudged you! Slashed progress by ${sabotage}%! ⚠️"
+                        chatLogItems.add("$targetName sent a fast speed nudge to distract you! ⚠️ No cells are erased!")
+                        nudgeMsg = "$targetName sent a speed nudge! ⚠️ Stay focused!"
 
                         searchState.value = currentConflict.copy(
-                            progressSelf = selfProg,
-                            progressOpponent = oppProg,
+                            progressOpponent = (oppProg + sabotage).coerceAtMost(99),
                             secondsLeft = secsLeft,
                             lastNudgeMessage = nudgeMsg,
-                            liveChatLog = chatLogItems.toList(),
-                            pvpGrid = updatedGrid
+                            liveChatLog = chatLogItems.toList()
                         )
                     }
                 } else {
@@ -1827,6 +1835,10 @@ class SudokuViewModel(
 
     fun signInAsGuest() {
         viewModelScope.launch {
+            if (prefs.getBoolean("persistent_guest_blocked", false)) {
+                showGuestLimitReachedDialog.value = true
+                return@launch
+            }
             repository.logOutAll()
             val guestProfile = UserProfileEntity(
                 userId = "guest_player_" + (1000..9999).random() + "@msb.com",
@@ -1845,6 +1857,7 @@ class SudokuViewModel(
             )
             repository.saveUserProfile(guestProfile)
             backupToPrefs(guestProfile)
+            prefs.edit().putBoolean("persistent_guest_blocked", true).apply()
             authState.value = AuthState.Authenticated
             activeTab.value = 0
         }
