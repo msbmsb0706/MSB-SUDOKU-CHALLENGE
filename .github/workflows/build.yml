@@ -44,6 +44,10 @@ jobs:
 
         uses: gradle/actions/setup-gradle@v4
 
+        with:
+
+          validate-wrappers: false
+
 
       - name: Build Debug APK
 
