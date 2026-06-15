@@ -40,6 +40,10 @@ jobs:
         uses: android-actions/setup-android@v3
 
 
+      - name: Make Gradle Wrapper Executable
+        run: chmod +x gradlew
+
+
       - name: Setup Gradle
 
         uses: gradle/actions/setup-gradle@v4
@@ -49,14 +53,32 @@ jobs:
           validate-wrappers: false
 
 
-      - name: Build Debug APK
+      - name: Run Quality Checks & Build APK
 
-        run: gradle assembleDebug --stacktrace
+        run: gradle lintDebug testDebugUnitTest assembleDebug --stacktrace
+
+
+      - name: Upload Build Reports (Lint & Tests)
+
+        uses: actions/upload-artifact@v4
+
+        if: always()
+
+        with:
+
+          name: quality-reports
+
+          path: |
+            app/build/reports/lint-results-debug.html
+            app/build/reports/lint-results-debug.xml
+            app/build/reports/tests/testDebugUnitTest/
 
 
       - name: Upload APK
 
         uses: actions/upload-artifact@v4
+
+        if: success()
 
         with:
 
