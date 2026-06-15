@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "My Application"
+rootProject.name = "MSB SUDOKU CHALLENGE POWERED BY MSB CREATIVE STUDIOS"
 
 include(":app")
