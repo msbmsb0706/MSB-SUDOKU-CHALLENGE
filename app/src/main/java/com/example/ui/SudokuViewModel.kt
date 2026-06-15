@@ -74,6 +74,14 @@ class SudokuViewModel(
         SoundManager.isMusicEnabled = newValue
     }
 
+    val isBiometricEnabled = MutableStateFlow(prefs.getBoolean("is_biometric_enabled", false))
+
+    fun toggleBiometricEnabled() {
+        val newValue = !isBiometricEnabled.value
+        isBiometricEnabled.value = newValue
+        prefs.edit().putBoolean("is_biometric_enabled", newValue).apply()
+    }
+
     override fun onCleared() {
         super.onCleared()
         try {
@@ -83,6 +91,7 @@ class SudokuViewModel(
 
     // --- Screen Settings ---
     var activeTab = MutableStateFlow(0) // 0: Play, 1: Competitive Arena, 2: Reward Dashboard
+    val showTermsAndPolicy = MutableStateFlow(false)
 
     // --- Active Game UI State (Now supports 4x4 & 9x9 dynamic puzzles!) ---
     val gridSize = MutableStateFlow(9) // 4 or 9
@@ -1748,13 +1757,14 @@ class SudokuViewModel(
         phoneNumber: String = "",
         certificatePassword: String = ""
     ) {
-        if (email.isBlank() || username.isBlank() || securityQ.isBlank() || securityA.isBlank() || passwordRaw.isBlank() || certificatePassword.isBlank()) {
+        val normalizedEmail = email.trim().lowercase()
+        if (normalizedEmail.isBlank() || username.isBlank() || securityQ.isBlank() || securityA.isBlank() || passwordRaw.isBlank() || certificatePassword.isBlank()) {
             registerError.value = "All credentials, certificate passes, and security hints are strictly required."
             return
         }
         registerError.value = null
         viewModelScope.launch {
-            val existing = repository.getUserProfileByEmail(email)
+            val existing = repository.getUserProfileByEmail(normalizedEmail)
             if (existing != null) {
                 registerError.value = "Email identifier already logged! Sign-in directly."
                 return@launch
@@ -1763,7 +1773,7 @@ class SudokuViewModel(
             repository.logOutAll()
             
             val newProfile = UserProfileEntity(
-                userId = email,
+                userId = normalizedEmail,
                 username = username,
                 region = region,
                 countryName = countryName,
@@ -1786,7 +1796,7 @@ class SudokuViewModel(
                 repository.saveUserProfile(newProfile)
                 backupToPrefs(newProfile)
                 val generatedOtp = (100000..999999).random().toString()
-                authState.value = AuthState.OtpVerification(email, generatedOtp)
+                authState.value = AuthState.OtpVerification(normalizedEmail, generatedOtp)
             } else {
                 repository.saveUserProfile(newProfile)
                 backupToPrefs(newProfile)
@@ -1863,7 +1873,8 @@ class SudokuViewModel(
         }
     }
 
-    fun requestRecoveryQuestion(email: String) {
+    fun requestRecoveryQuestion(emailRaw: String) {
+        val email = emailRaw.trim().lowercase()
         if (email.isBlank()) {
             forgetPasswordError.value = "Please input registered email directory."
             return
@@ -1879,7 +1890,8 @@ class SudokuViewModel(
         }
     }
 
-    fun verifyRecoveryAnswerAndReset(email: String, answer: String, pass: String) {
+    fun verifyRecoveryAnswerAndReset(emailRaw: String, answer: String, pass: String) {
+        val email = emailRaw.trim().lowercase()
         if (answer.isBlank() || pass.isBlank()) {
             forgetPasswordError.value = "Answer and new password must be populated."
             return
@@ -1904,6 +1916,91 @@ class SudokuViewModel(
             authState.value = AuthState.Authenticated
             activeTab.value = 0
         }
+    }
+
+    fun requestRecoveryOtp(emailRaw: String) {
+        val email = emailRaw.trim().lowercase()
+        if (email.isBlank()) {
+            forgetPasswordError.value = "Please input registered email directory."
+            return
+        }
+        forgetPasswordError.value = null
+        viewModelScope.launch {
+            val user = repository.getUserProfileByEmail(email)
+            if (user == null) {
+                forgetPasswordError.value = "User folder not registered in local directories."
+                return@launch
+            }
+            val generatedOtp = (100000..999999).random().toString()
+            authState.value = AuthState.ForgetPasswordOtpVerification(email, generatedOtp)
+        }
+    }
+
+    fun verifyRecoveryOtp(email: String, entered: String, expected: String) {
+        if (entered != expected) {
+            forgetPasswordError.value = "Secret OTP verification mismatch! Please double-check."
+            return
+        }
+        forgetPasswordError.value = null
+        authState.value = AuthState.ForgetPasswordReset(email)
+    }
+
+    fun resetPasswordDirectly(email: String, pass: String) {
+        if (pass.isBlank()) {
+            forgetPasswordError.value = "New password must be populated."
+            return
+        }
+        forgetPasswordError.value = null
+        viewModelScope.launch {
+            val user = repository.getUserProfileByEmail(email) ?: return@launch
+            repository.logOutAll()
+            repository.saveUserProfile(
+                user.copy(
+                    passwordHash = pass,
+                    isLoggedIn = true
+                )
+            )
+            authState.value = AuthState.ForgetPasswordSuccess(email)
+            delay(1500)
+            authState.value = AuthState.Authenticated
+            activeTab.value = 0
+        }
+    }
+
+    fun loginWithBiometrics(onBiometricsValidated: (String) -> Unit) {
+        loginError.value = null
+        if (!isBiometricEnabled.value) {
+            loginError.value = "Biometric authentication is not enabled in settings."
+            return
+        }
+        val savedEmail = prefs.getString("saved_user_id", "") ?: ""
+        if (savedEmail.isBlank()) {
+            loginError.value = "No registered profile found for biometric shortcut link."
+            return
+        }
+        viewModelScope.launch {
+            val existing = repository.getUserProfileByEmail(savedEmail)
+            if (existing == null) {
+                loginError.value = "No local profile matched. Please login with password first."
+                return@launch
+            }
+            onBiometricsValidated(savedEmail)
+        }
+    }
+
+    fun onBiometricSuccess(email: String) {
+        viewModelScope.launch {
+            val user = repository.getUserProfileByEmail(email) ?: return@launch
+            repository.logOutAll()
+            repository.saveUserProfile(user.copy(isLoggedIn = true))
+            authState.value = AuthState.Authenticated
+            activeTab.value = 0
+        }
+    }
+
+    fun setBiometricEnabled(enabled: Boolean) {
+        isBiometricEnabled.value = enabled
+        prefs.edit().putBoolean("is_biometric_enabled", enabled).apply()
     }
 
     fun logOutCurrentSession() {
@@ -2143,6 +2240,8 @@ sealed class AuthState {
     data class OtpVerification(val email: String, val generatedOtp: String) : AuthState()
     data class ForgetPasswordStep1(val email: String) : AuthState()
     data class ForgetPasswordStep2(val email: String, val question: String) : AuthState()
+    data class ForgetPasswordOtpVerification(val email: String, val generatedOtp: String) : AuthState()
+    data class ForgetPasswordReset(val email: String) : AuthState()
     data class ForgetPasswordSuccess(val email: String) : AuthState()
     object Authenticated : AuthState()
 }

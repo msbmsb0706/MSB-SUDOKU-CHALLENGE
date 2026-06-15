@@ -485,6 +485,12 @@ fun RowScope.BottomTabItem(
 
 // --- 1. Sudoku Play Tab ---
 
+enum class PlayTabScreen {
+    MainMenu,
+    GameBoard,
+    TermsAndPolicy
+}
+
 @Composable
 fun PlayScreenTab(viewModel: SudokuViewModel) {
     val grid by viewModel.grid.collectAsStateWithLifecycle()
@@ -571,8 +577,33 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        if (grid.isEmpty()) {
-            // New Game Setup / Selector page
+        val showTermsAndPolicy by viewModel.showTermsAndPolicy.collectAsStateWithLifecycle()
+        val playSubScreen = when {
+            showTermsAndPolicy -> PlayTabScreen.TermsAndPolicy
+            grid.isEmpty() -> PlayTabScreen.MainMenu
+            else -> PlayTabScreen.GameBoard
+        }
+
+        AnimatedContent(
+            targetState = playSubScreen,
+            transitionSpec = {
+                if (initialState == PlayTabScreen.MainMenu && targetState == PlayTabScreen.GameBoard) {
+                    (slideInHorizontally { it } + fadeIn()).togetherWith(slideOutHorizontally { -it } + fadeOut())
+                } else if (initialState == PlayTabScreen.GameBoard && targetState == PlayTabScreen.MainMenu) {
+                    (slideInHorizontally { -it } + fadeIn()).togetherWith(slideOutHorizontally { it } + fadeOut())
+                } else if (targetState == PlayTabScreen.TermsAndPolicy) {
+                    (slideInVertically { it } + fadeIn()).togetherWith(slideOutVertically { -it } + fadeOut())
+                } else if (initialState == PlayTabScreen.TermsAndPolicy) {
+                    (slideInVertically { -it } + fadeIn()).togetherWith(slideOutVertically { it } + fadeOut())
+                } else {
+                    fadeIn() togetherWith fadeOut()
+                }
+            },
+            label = "play_subscreen_nav"
+        ) { screenState ->
+            when (screenState) {
+                PlayTabScreen.MainMenu -> {
+                    // New Game Setup / Selector page
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -957,8 +988,36 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                         letterSpacing = 0.5.sp
                     )
                 }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                OutlinedButton(
+                    onClick = { viewModel.showTermsAndPolicy.value = true },
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .testTag("menu_terms_policy_btn")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "info icon",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "VIEW TERMS & PRIVACY POLICY",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.5.sp
+                    )
+                }
             }
-        } else {
+        }
+        PlayTabScreen.GameBoard -> {
             // Live Puzzle Active Canvas
             Column(
                 modifier = Modifier
@@ -1023,6 +1082,23 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("WITHDRAW", fontSize = 9.sp, fontWeight = FontWeight.Black)
+                            }
+
+                            Spacer(modifier = Modifier.width(4.dp))
+                            IconButton(
+                                onClick = { viewModel.showTermsAndPolicy.value = true },
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .testTag("board_terms_policy_btn")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = "Terms",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp)
+                                )
                             }
                         }
                     }
@@ -1175,6 +1251,14 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                 )
             }
         }
+        PlayTabScreen.TermsAndPolicy -> {
+            TermsAndPolicyDocumentScreen(
+                viewModel = viewModel,
+                onBack = { viewModel.showTermsAndPolicy.value = false }
+            )
+        }
+    }
+}
 
         // Overlays: Victory / GameOver / Tournament Leaderboard Screens
         if (isTeamTournamentActive && userHasFinishedTournament) {
@@ -1757,6 +1841,7 @@ fun ProfileScreenTab(viewModel: SudokuViewModel) {
     val selectedTheme by viewModel.selectedTheme.collectAsStateWithLifecycle()
     val isSoundEnabled by viewModel.isSoundEnabled.collectAsStateWithLifecycle()
     val isMusicEnabled by viewModel.isMusicEnabled.collectAsStateWithLifecycle()
+    val isBiometricEnabled by viewModel.isBiometricEnabled.collectAsStateWithLifecycle()
 
     SettingsPanel(
         userProfile = userProfile,
@@ -1772,7 +1857,9 @@ fun ProfileScreenTab(viewModel: SudokuViewModel) {
         isSoundEnabled = isSoundEnabled,
         onToggleSound = { viewModel.toggleSoundEnabled() },
         isMusicEnabled = isMusicEnabled,
-        onToggleMusic = { viewModel.toggleMusicEnabled() }
+        onToggleMusic = { viewModel.toggleMusicEnabled() },
+        isBiometricEnabled = isBiometricEnabled,
+        onToggleBiometric = { viewModel.toggleBiometricEnabled() }
     )
 }
 
@@ -3318,6 +3405,167 @@ fun WinningCertificateOverlay(
                 }
             }
         }
+        }
+    }
+}
+
+@Composable
+fun TermsAndPolicyDocumentScreen(
+    viewModel: SudokuViewModel,
+    onBack: () -> Unit
+) {
+    var activeDocTab by remember { mutableStateOf(0) }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(16.dp)
+    ) {
+        // Safe spacing
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Core header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .size(48.dp)
+                    .testTag("terms_back_btn")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text(
+                    text = "TERMS & SECURITY LEDGER",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.primary,
+                    letterSpacing = 0.5.sp
+                )
+                Text(
+                    text = "SECURED BY MSB CREATIVE STUDIOS",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.secondary,
+                    letterSpacing = 1.sp
+                )
+            }
+        }
+        
+        // Document Tab Selector
+        TabRow(
+            selectedTabIndex = activeDocTab,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .padding(bottom = 16.dp)
+        ) {
+            Tab(
+                selected = activeDocTab == 0,
+                onClick = { activeDocTab = 0 },
+                text = { Text("Terms", fontWeight = FontWeight.Bold, fontSize = 11.sp) }
+            )
+            Tab(
+                selected = activeDocTab == 1,
+                onClick = { activeDocTab = 1 },
+                text = { Text("Privacy", fontWeight = FontWeight.Bold, fontSize = 11.sp) }
+            )
+            Tab(
+                selected = activeDocTab == 2,
+                onClick = { activeDocTab = 2 },
+                text = { Text("Anti-Cheat", fontWeight = FontWeight.Bold, fontSize = 11.sp) }
+            )
+        }
+        
+        // Content Panel with rounded outline, styled card body
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                when (activeDocTab) {
+                    0 -> {
+                        Text(
+                            text = "TERMS & CONDITIONS OF DISCOVERY",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "1. Acceptance of Analytical Terms\n" +
+                                   "By utilizing Direct OTP verification shortcut credentials or local database directories under your control, you explicitly agree to these regulatory terms backing MSB SUDOKU CHALLENGE.\n\n" +
+                                   "2. Personal Account Integrity\n" +
+                                   "All puzzle results, certificates, offline highscores, and PlayGold Points (PGP) accumulated must be obtained via active manual play. Visual cheats or speed automation engines are prohibited.\n\n" +
+                                   "3. Secure Sandbox Sandbox Links\n" +
+                                   "Linked account protocols are protected by local encryption. Revocations via custom setting panel options execute instantly and discard stored tokens from offline directories.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 16.sp
+                        )
+                    }
+                    1 -> {
+                        Text(
+                            text = "PRIVACY STATEMENT SUMMARY",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "Your privacy is paramount. MSB Creative Studios implements safe offline-first architectural storage metrics:\n\n" +
+                                   "• Derivative Account Signatures: Stored locally inside database caches as secure hashes. We do not transmit clear-text emails or security answers.\n" +
+                                   "• Local Credentials Preservation: Phone dial codes, biometric shortcuts, and email keys reside entirely in secure local SharedPreferences.\n" +
+                                   "• Third-Party Tracking Disclaimers: Analytics, dynamic themes, and leaderboard records are sanitized before display to maintain absolute user control.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 16.sp
+                        )
+                    }
+                    2 -> {
+                        Text(
+                            text = "ANTI-CHEAT & FAIR PLAY MANIFEST",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "1. Cryptographic PGP Clearance\n" +
+                                   "PGPs represents genuine mathematical solve latency stats. If speed spikes or coordinate jumps violate physical tap latency limits, system reserves rights to clear PGP logs.\n\n" +
+                                   "2. Multiplayer Swap Balance\n" +
+                                   "Competitive Arena lobbies restrict swap-cooldowns and score sabotage to maintain sportsmanship.\n\n" +
+                                   "3. Local Data Security\n" +
+                                   "Any tamper attempts of local files are auto-resolved by database resets. Always secure your local device using biometric face locks.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
+            }
         }
     }
 }

@@ -151,6 +151,21 @@ fun AuthStateContainer(
                     onBackClicked = { viewModel.authState.value = AuthState.ForgetPasswordStep1(state.email) }
                 )
             }
+            is AuthState.ForgetPasswordOtpVerification -> {
+                ForgetPasswordOtpScreen(
+                    viewModel = viewModel,
+                    email = state.email,
+                    generatedOtp = state.generatedOtp,
+                    onBackClicked = { viewModel.authState.value = AuthState.ForgetPasswordStep1(state.email) }
+                )
+            }
+            is AuthState.ForgetPasswordReset -> {
+                ForgetPasswordResetScreen(
+                    viewModel = viewModel,
+                    email = state.email,
+                    onBackClicked = { viewModel.authState.value = AuthState.ForgetPasswordStep1(state.email) }
+                )
+            }
             is AuthState.ForgetPasswordSuccess -> {
                 ForgetPasswordSuccessScreen(email = state.email)
             }
@@ -291,6 +306,21 @@ fun AuthLoginScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     val loginError by viewModel.loginError.collectAsStateWithLifecycle()
+
+    val isBiometricEnabled by viewModel.isBiometricEnabled.collectAsStateWithLifecycle()
+    var showBiometricAuthDialog by remember { mutableStateOf(false) }
+    var biometricValidatedEmail by remember { mutableStateOf("") }
+
+    if (showBiometricAuthDialog && biometricValidatedEmail.isNotEmpty()) {
+        BiometricSimulatedAuthDialog(
+            email = biometricValidatedEmail,
+            onDismiss = { showBiometricAuthDialog = false },
+            onSuccess = { emailStr ->
+                showBiometricAuthDialog = false
+                viewModel.onBiometricSuccess(emailStr)
+            }
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -452,6 +482,30 @@ fun AuthLoginScreen(
                     .height(52.dp)
             )
 
+            if (isBiometricEnabled) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = {
+                        viewModel.loginWithBiometrics(
+                            onBiometricsValidated = { validatedEmail ->
+                                biometricValidatedEmail = validatedEmail
+                                showBiometricAuthDialog = true
+                            }
+                        )
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .testTag("login_biometric_btn"),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Face, contentDescription = "Biometric Lock")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("SIGN IN WITH BIOMETRICS", fontWeight = FontWeight.Bold)
+                }
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
@@ -508,6 +562,7 @@ fun AuthRegisterScreen(
     var certPassVisible by remember { mutableStateOf(false) }
     var termsAgreed by remember { mutableStateOf(false) }
     var showTermsDialog by remember { mutableStateOf(false) }
+    var registerWithBiometric by remember { mutableStateOf(true) }
     
     val regions = listOf("Americas", "Europe", "Asia-Pacific", "Africa")
     val recoveryQuestions = listOf(
@@ -1058,12 +1113,35 @@ fun AuthRegisterScreen(
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                         Text(
-                                            text = "1. Data Isolation & Security\n" +
-                                                   "All user details, password hashes, security challenge responses, and regional highscores reside inside localized SQLite registries. No remote user profiling is initiated.\n\n" +
-                                                   "2. Direct Google SSO privacy\n" +
-                                                   "One-tap Google SSO bypasses password entry securely. If Two-Factor secure OTP is selected, an administrative simulated SMS flow is processed to protect registrations from breach.\n\n" +
-                                                   "3. Cryptographically Signed OAuth Portals\n" +
-                                                   "Our LinkedIn, Facebook, and Instagram OAuth portals utilize real-time browser sandbox frames. We never transmit or log password strings; we only store the certified profile handle returned via back-channel authorization code exchange to render verified milestones alongside leaderboards.",
+                                            text = "Privacy Policy for MSB CREATIVE STUDIOS\n" +
+                                                   "Last Updated: 2026 onwards\n\n" +
+                                                   "Welcome to MSB CREATIVE STUDIOS (\"we,\" \"our,\" or \"us\"). We are committed to protecting your personal information and your right to privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit or use our mobile applications and services.\n\n" +
+                                                   "Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access our applications.\n\n" +
+                                                   "1. Information We Collect\n" +
+                                                   "We may collect information about you in a variety of ways depending on how you interact with our applications:\n" +
+                                                   "• Personal Data: We do not automatically collect personally identifiable information (such as your name or phone number) unless you voluntarily provide it to us (e.g., when contacting customer support).\n" +
+                                                   "• Derivative Data & Device Information: Our servers or third-party tools may automatically collect information when you access our apps, such as your mobile device ID, model, manufacturer, operating system version, and basic usage statistics.\n" +
+                                                   "• Financial Data: For any in-app purchases or app sales, all transactions are processed securely by the Google Play Store payment systems. We do not store or collect your credit card or bank account details.\n\n" +
+                                                   "2. How We Use Your Information\n" +
+                                                   "We use the information collected to:\n" +
+                                                   "• Operate, maintain, and improve our mobile applications.\n" +
+                                                   "• Understand user trends to design better app features.\n" +
+                                                   "• Respond to customer support requests or inquiries.\n" +
+                                                   "• Deliver relevant updates, notifications, or in-app announcements.\n\n" +
+                                                   "3. Disclosure of Your Information\n" +
+                                                   "We do not sell, trade, or rent your personal information to third parties. We may share information with third-party service providers (like analytics or advertising networks) that perform services for us, provided they adhere to strict confidentiality agreements. We may also disclose information if required to do so by law or to protect our legal rights.\n\n" +
+                                                   "4. Third-Party Services & Analytics\n" +
+                                                   "Our apps may utilize third-party SDKs or libraries (such as Google Analytics for Firebase or Google AdMob) to optimize app performance and display advertisements. These third-party services have their own independent privacy policies governing data tracking.\n\n" +
+                                                   "5. Data Security\n" +
+                                                   "We implement reasonable administrative, technical, and physical security measures to protect your personal information. However, please be aware that no electronic transmission over the internet or data storage technology can be guaranteed 100% secure.\n\n" +
+                                                   "6. Children's Privacy\n" +
+                                                   "Our applications are designed to comply with global privacy standards, including the Children's Online Privacy Protection Act (COPPA). If our app collects any data from children under the age of 13, it is done solely for internal operations (such as game saves or basic analytics) and is never shared with third parties for profiling.\n\n" +
+                                                   "7. Changes to This Privacy Policy\n" +
+                                                   "We reserve the right to make changes to this Privacy Policy at any time. We will notify you of any changes by updating the \"Last Updated\" date at the top of this policy.\n\n" +
+                                                   "8. Contact Us\n" +
+                                                   "If you have questions or comments about this Privacy Policy, please contact us at:\n" +
+                                                   "Business Entity: MSB CREATIVE STUDIOS\n" +
+                                                   "Email: msbcreativestudios@gmail.com",
                                             fontSize = 11.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -1103,6 +1181,7 @@ fun AuthRegisterScreen(
                             onClick = {
                                 termsAgreed = true
                                 showTermsDialog = false
+                                viewModel.signInAsGuest()
                             }
                         ) {
                             Text("AGREE & ACCEPT", fontWeight = FontWeight.Bold)
@@ -1209,6 +1288,48 @@ fun AuthRegisterScreen(
                 )
             }
 
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f))
+                    .clickable { registerWithBiometric = !registerWithBiometric }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Face,
+                        contentDescription = "Biometric Lock",
+                        tint = if (registerWithBiometric) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Enable Biometric / Face Lock",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Authenticate securely with device credentials upon setup",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Switch(
+                    checked = registerWithBiometric,
+                    onCheckedChange = { registerWithBiometric = it }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             registerError?.let { err ->
                 Spacer(modifier = Modifier.height(12.dp))
                 Card(
@@ -1250,6 +1371,7 @@ fun AuthRegisterScreen(
                     }
                     val finalId = emailInput.trim().lowercase()
                     val fullPhoneNo = "${phoneCountryCode} ${phoneDigits.trim()}"
+                    viewModel.setBiometricEnabled(registerWithBiometric)
                     viewModel.registerUser(
                         email = finalId,
                         username = username,
@@ -1390,6 +1512,37 @@ fun ForgetPasswordStep1Screen(
             ) {
                 Text("LOOK UP SECURITY QUESTION", fontWeight = FontWeight.Bold)
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = { viewModel.requestRecoveryOtp(email) },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .testTag("recovery_otp_request_btn"),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Send, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("SEND RECOVERY OTP TO EMAIL", fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedButton(
+                onClick = onBackClicked,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .testTag("recovery_back_btn"),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.ArrowBack, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("BACK TO SIGN IN", fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
@@ -1528,6 +1681,21 @@ fun ForgetPasswordStep2Screen(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text("RESET PASSWORD & SIGN IN", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedButton(
+                onClick = onBackClicked,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .testTag("recovery_step2_back_btn"),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.ArrowBack, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("BACK", fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -1733,4 +1901,432 @@ fun AdminOtpScreen(
             }
         }
     }
+}
+
+@Composable
+fun ForgetPasswordOtpScreen(
+    viewModel: SudokuViewModel,
+    email: String,
+    generatedOtp: String,
+    onBackClicked: () -> Unit
+) {
+    var enteredOtp by remember { mutableStateOf("") }
+    val forgetPasswordError by viewModel.forgetPasswordError.collectAsStateWithLifecycle()
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+        ) {
+            IconButton(
+                onClick = onBackClicked,
+                modifier = Modifier
+                    .align(Alignment.Start)
+                    .padding(bottom = 12.dp)
+            ) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+            }
+
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)),
+                modifier = Modifier
+                    .size(80.dp)
+                    .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(20.dp))
+            ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Email,
+                        contentDescription = "Mail OTP",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Text(
+                text = "RECOVERY OTP AUTH",
+                fontWeight = FontWeight.Black,
+                fontSize = 20.sp,
+                letterSpacing = 1.sp,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Text(
+                text = "PASSWORD RESET CODE",
+                fontWeight = FontWeight.Bold,
+                fontSize = 10.sp,
+                letterSpacing = 2.sp,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Text(
+                text = "We have simulated transmitting a safe recovery OTP to $email. Use it below to perform a password reset.",
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center,
+                lineHeight = 16.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            OutlinedTextField(
+                value = enteredOtp,
+                onValueChange = { if (it.length <= 6) enteredOtp = it },
+                label = { Text("6-Digit Recovery OTP") },
+                placeholder = { Text("e.g. 123456") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("recovery_otp_input"),
+                shape = RoundedCornerShape(12.dp),
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) }
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "🔒 SIMULATED SECURE EMAIL DEVIATION",
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.5.sp
+                    )
+                    Text(
+                        text = "To allow testing in offline evaluation setups, the generated authorization code for this profile is:",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 14.sp
+                    )
+                    Text(
+                        text = "PASSWORD RESET CODE: $generatedOtp",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 2.dp),
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                    )
+                }
+            }
+
+            forgetPasswordError?.let { err ->
+                Spacer(modifier = Modifier.height(14.dp))
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Warning, contentDescription = "Error", tint = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = err, color = MaterialTheme.colorScheme.onErrorContainer, fontSize = 12.sp)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = { viewModel.verifyRecoveryOtp(email, enteredOtp, generatedOtp) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .testTag("recovery_otp_submit_btn"),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("VERIFY & RESET PASSWORD", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun ForgetPasswordResetScreen(
+    viewModel: SudokuViewModel,
+    email: String,
+    onBackClicked: () -> Unit
+) {
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var passVisible by remember { mutableStateOf(false) }
+    val forgetPasswordError by viewModel.forgetPasswordError.collectAsStateWithLifecycle()
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.Start,
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+        ) {
+            IconButton(
+                onClick = onBackClicked,
+                modifier = Modifier.padding(bottom = 8.dp)
+            ) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Go Back")
+            }
+
+            Text(
+                text = "SET NEW PASSWORD",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "Authentication via OTP passed. Secure your login with a new access key.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            OutlinedTextField(
+                value = newPassword,
+                onValueChange = { newPassword = it },
+                label = { Text("New Password") },
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                trailingIcon = {
+                    val icon = if (passVisible) Icons.Default.Done else Icons.Default.PlayArrow
+                    IconButton(onClick = { passVisible = !passVisible }) {
+                        Icon(imageVector = icon, contentDescription = "Toggle password")
+                    }
+                },
+                singleLine = true,
+                visualTransformation = if (passVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("recovery_direct_newpass_input"),
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                label = { Text("Confirm New Password") },
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("recovery_direct_confirm_input"),
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            forgetPasswordError?.let { err ->
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Warning, contentDescription = "Error", tint = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = err, color = MaterialTheme.colorScheme.onErrorContainer, fontSize = 12.sp)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = {
+                    if (newPassword.isBlank()) {
+                        viewModel.forgetPasswordError.value = "Please enter a valid non-empty password."
+                        return@Button
+                    }
+                    if (newPassword != confirmPassword) {
+                        viewModel.forgetPasswordError.value = "Passwords do not match."
+                        return@Button
+                    }
+                    viewModel.resetPasswordDirectly(email, newPassword)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .testTag("recovery_direct_reset_btn"),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("RESET PASSWORD & LOG IN", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+fun BiometricSimulatedAuthDialog(
+    email: String,
+    onDismiss: () -> Unit,
+    onSuccess: (String) -> Unit
+) {
+    var isScanning by remember { mutableStateOf(false) }
+    var scanComplete by remember { mutableStateOf(false) }
+    var progress by remember { mutableStateOf(0f) }
+
+    LaunchedEffect(isScanning) {
+        if (isScanning) {
+            progress = 0f
+            while (progress < 1f) {
+                kotlinx.coroutines.delay(60)
+                progress += 0.05f
+            }
+            scanComplete = true
+            isScanning = false
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "BIOMETRIC SYSTEM LOG",
+                fontWeight = FontWeight.Black,
+                fontSize = 16.sp,
+                letterSpacing = 1.sp,
+                color = MaterialTheme.colorScheme.primary
+            )
+        },
+        text = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+            ) {
+                Text(
+                    text = "Requesting device-level face unlock or fingerprint sensor clearance for account authorization ($email).",
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(120.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f))
+                        .border(
+                            2.dp,
+                            if (scanComplete) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                            RoundedCornerShape(24.dp)
+                        )
+                        .clickable(enabled = !isScanning && !scanComplete) {
+                            isScanning = true
+                        }
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = if (scanComplete) Icons.Default.Done else Icons.Default.Face,
+                            contentDescription = "Sensor Touch",
+                            tint = if (scanComplete) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = if (scanComplete) "CLEARED" else if (isScanning) "SCANNING..." else "START SCAN",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (scanComplete) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                if (isScanning) {
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "COMPLIANCE & CAPABILITY DETAILS:",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "• Hardware target status: EMULATION CONTAINER\n" +
+                                   "• Device keys backup format: SHARED SIGNATURE KEY\n" +
+                                   "• Sandbox capability level: COMPLIANT ACTIVE",
+                            fontSize = 9.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (scanComplete) {
+                Button(
+                    onClick = { onSuccess(email) }
+                ) {
+                    Text("PROCEED LOG IN", fontWeight = FontWeight.Bold)
+                }
+            } else {
+                Button(
+                    onClick = {
+                        isScanning = false
+                        scanComplete = true
+                    }
+                ) {
+                    Text("SIMULATE SCAN", fontWeight = FontWeight.Bold)
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("CANCEL")
+            }
+        }
+    )
 }

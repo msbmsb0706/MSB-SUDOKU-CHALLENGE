@@ -48,6 +48,8 @@ fun SettingsPanel(
     onToggleSound: () -> Unit = {},
     isMusicEnabled: Boolean = true,
     onToggleMusic: () -> Unit = {},
+    isBiometricEnabled: Boolean = false,
+    onToggleBiometric: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var editUsername by remember { mutableStateOf("") }
@@ -881,6 +883,60 @@ fun SettingsPanel(
                             uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                         ),
                         modifier = Modifier.testTag("bg_music_toggle")
+                    )
+                }
+
+                Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+
+                // Biometric / Face Lock Toggle Switch
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onToggleBiometric() }
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Card(
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Face,
+                                    contentDescription = "Biometric Lock",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Column {
+                            Text(
+                                text = "Biometric / Face Lock",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = if (isBiometricEnabled) "Enabled (Secure instant shortcut)" else "Disabled (Password needed)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Switch(
+                        checked = isBiometricEnabled,
+                        onCheckedChange = { onToggleBiometric() },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
+                            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        modifier = Modifier.testTag("biometric_face_lock_toggle")
                     )
                 }
             }
