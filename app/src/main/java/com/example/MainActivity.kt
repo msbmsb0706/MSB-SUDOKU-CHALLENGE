@@ -2,7 +2,7 @@ package com.example
 
 import android.app.Application
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
@@ -47,7 +47,7 @@ import com.example.ui.*
 import com.example.ui.components.*
 import com.example.ui.theme.MyApplicationTheme
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
 
     override fun getAttributionTag(): String? {
         return "default"

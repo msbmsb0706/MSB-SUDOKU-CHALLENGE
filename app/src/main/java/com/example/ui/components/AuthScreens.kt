@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
@@ -2198,6 +2199,66 @@ fun BiometricSimulatedAuthDialog(
     onDismiss: () -> Unit,
     onSuccess: (String) -> Unit
 ) {
+    val context = LocalContext.current
+    val activity = remember(context) {
+        var currentContext = context
+        while (currentContext is android.content.ContextWrapper) {
+            if (currentContext is androidx.fragment.app.FragmentActivity) {
+                break
+            }
+            currentContext = currentContext.baseContext
+        }
+        currentContext as? androidx.fragment.app.FragmentActivity
+    }
+
+    val biometricManager = remember(context) { androidx.biometric.BiometricManager.from(context) }
+    val canAuthenticate = remember(biometricManager) {
+        biometricManager.canAuthenticate(
+            androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or 
+            androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
+        ) == androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS
+    }
+
+    LaunchedEffect(activity) {
+        if (activity != null && canAuthenticate) {
+            try {
+                val executor = androidx.core.content.ContextCompat.getMainExecutor(activity)
+                val biometricPrompt = androidx.biometric.BiometricPrompt(
+                    activity,
+                    executor,
+                    object : androidx.biometric.BiometricPrompt.AuthenticationCallback() {
+                        override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                            super.onAuthenticationError(errorCode, errString)
+                            // User cancelled or error, fall back to allow using the visual touch scanner
+                        }
+
+                        override fun onAuthenticationSucceeded(result: androidx.biometric.BiometricPrompt.AuthenticationResult) {
+                            super.onAuthenticationSucceeded(result)
+                            onSuccess(email)
+                        }
+
+                        override fun onAuthenticationFailed() {
+                            super.onAuthenticationFailed()
+                        }
+                    }
+                )
+
+                val promptInfo = androidx.biometric.BiometricPrompt.PromptInfo.Builder()
+                    .setTitle("MSB Sudoku Verification")
+                    .setSubtitle("Confirm biological credentials to authenticate as $email")
+                    .setAllowedAuthenticators(
+                        androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or 
+                        androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                    )
+                    .build()
+
+                biometricPrompt.authenticate(promptInfo)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     var isScanning by remember { mutableStateOf(false) }
     var scanComplete by remember { mutableStateOf(false) }
     var progress by remember { mutableStateOf(0f) }

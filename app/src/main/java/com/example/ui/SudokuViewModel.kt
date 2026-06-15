@@ -136,7 +136,7 @@ class SudokuViewModel(
     val recentMatchResult = MutableStateFlow<MatchResult?>(null)
 
     val authState = MutableStateFlow<AuthState>(AuthState.Welcome)
-    val secureOtpEnabled = MutableStateFlow(false)
+    val secureOtpEnabled = MutableStateFlow(true)
 
     // --- User profile stats collected from DB ---
     val userProfile = repository.userProfile.stateIn(
