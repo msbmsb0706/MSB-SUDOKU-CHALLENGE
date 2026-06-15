@@ -11,9 +11,9 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.sudokumsb.vjykpt"
-    minSdk = 24
-    targetSdk = 35
+    applicationId = "com.example.sudoku"
+    minSdk = 28
+    targetSdk = 34
     versionCode = 1
     versionName = "1.0"
 
