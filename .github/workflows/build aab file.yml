@@ -26,10 +26,13 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-       - name: Setup Gradle
+      - name: Make Gradle Wrapper Executable
+        run: chmod +x gradlew
+
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          validate-wrappers: false  # Add this line to bypass the validation error
+          validate-wrappers: false
 
       - name: Create release keystore
         run: |
@@ -44,12 +47,12 @@ jobs:
             -dname "CN=N-Educate, OU=N-Educate, O=N-Educate, L=Accra, S=Greater Accra, C=GH"
 
       - name: Build Signed Release AAB
-        run: gradle bundleRelease --stacktrace
+        run: ./gradlew bundleRelease --stacktrace
 
       - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
-          name: app-MSB SUDOKU CHALLENGE POWERED BY MSB CREATIVE STUDIOS-aab
+          name: app-MSB-SUDOKU-CHALLENGE-aab
           path: app/build/outputs/bundle/release/app-release.aab
 
       - name: Upload Keystore Backup
@@ -57,4 +60,3 @@ jobs:
         with:
           name: save-this-keystore
           path: my-upload-key.jks
-
