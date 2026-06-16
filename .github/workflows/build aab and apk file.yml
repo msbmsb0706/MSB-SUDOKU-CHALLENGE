@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: android-actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
@@ -41,33 +41,41 @@ jobs:
 
       - name: Repair Wrapper and Build
         run: |
-          # 1. Clean the wrapper and force regeneration to fix corrupt jarfile
           rm -f gradle/wrapper/gradle-wrapper.jar
-          # Use a pre-installed gradle to generate the wrapper if gradlew is currently failing
           gradle wrapper --gradle-version 9.3.1
-          
-          # 2. Set permissions
           chmod +x gradlew
-          
-          # 3. Clean and build artifacts
           ./gradlew clean assembleRelease bundleRelease --stacktrace
 
       - name: Sign APK
         run: |
+          # 1. List contents to debug path
+          echo "Debug: Listing files in release directory:"
+          ls -R app/build/outputs/apk/release/ || echo "Directory does not exist"
+          
+          # 2. Find the APK file dynamically
+          APK_FILE=$(find app/build/outputs/apk/release/ -name "*.apk" | head -n 1)
+          
+          if [ -z "$APK_FILE" ]; then
+            echo "Error: No APK file found in output directory!"
+            exit 1
+          fi
+          
+          echo "Signing file: $APK_FILE"
+          
           $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks "$KEYSTORE_PATH" \
           --ks-key-alias upload \
           --ks-pass pass:$STORE_PASSWORD \
           --key-pass pass:$KEY_PASSWORD \
-          app/build/outputs/apk/release/app-release-unsigned.apk
+          "$APK_FILE"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-MSB-SUDOKU-CHALLENGE-signed-apk
-          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          path: app/build/outputs/apk/release/*.apk
 
       - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
           name: app-MSB-SUDOKU-CHALLENGE-aab
-          path: app/build/outputs/bundle/release/app-release.aab
+          path: app/build/outputs/bundle/release/*.aab
