@@ -39,16 +39,17 @@ jobs:
             -validity 10000 \
             -dname "CN=MSB Creative Studios, OU=MSB, O=MSB, L=Chennai, S=Tamil Nadu, C=IN"
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '9.3.1'
-          validate-wrappers: false
-          cache-disabled: true
-
-      - name: Build Release APK and AAB
+      - name: Repair Wrapper and Build
         run: |
+          # 1. Clean the wrapper and force regeneration to fix corrupt jarfile
+          rm -f gradle/wrapper/gradle-wrapper.jar
+          # Use a pre-installed gradle to generate the wrapper if gradlew is currently failing
+          gradle wrapper --gradle-version 9.3.1
+          
+          # 2. Set permissions
           chmod +x gradlew
+          
+          # 3. Clean and build artifacts
           ./gradlew clean assembleRelease bundleRelease --stacktrace
 
       - name: Sign APK
