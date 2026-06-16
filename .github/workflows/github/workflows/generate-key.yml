@@ -1,0 +1,16 @@
+name: Generate Keystore
+on: workflow_dispatch
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Keystore
+        run: |
+          keytool -genkeypair -v -keystore my-upload-key.jks -storetype JKS \
+          -keyalg RSA -keysize 2048 -validity 10000 -alias upload \
+          -storepass android123 -keypass android123 \
+          -dname "CN=MSB Creative Studios, OU=MSB, O=MSB, L=Chennai, S=Tamil Nadu, C=IN"
+          
+          echo "Base64 version for your Secret:"
+          base64 my-upload-key.jks
