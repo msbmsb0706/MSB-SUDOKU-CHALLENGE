@@ -33,6 +33,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           validate-wrappers: false
+          cache-disabled: true
 
       - name: Create release keystore
         run: |
