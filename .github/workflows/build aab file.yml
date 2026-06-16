@@ -1,4 +1,5 @@
 name: Build APK and AAB
+
 on:
   push:
     branches:
@@ -46,7 +47,7 @@ jobs:
           cache-disabled: true
 
       - name: Build Release APK and AAB
-        run: gradle assembleRelease bundleRelease --stacktrace
+        run: ./gradlew clean assembleRelease bundleRelease --stacktrace
 
       - name: Sign APK
         run: |
