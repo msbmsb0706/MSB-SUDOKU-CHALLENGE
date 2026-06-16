@@ -5,13 +5,15 @@ jobs:
   generate:
     runs-on: ubuntu-latest
     steps:
-      - name: Generate Keystore
+      - name: Generate and Print Keystore
         run: |
+          # 1. Generate the keystore
           keytool -genkeypair -v -keystore my-upload-key.jks -storetype JKS \
           -keyalg RSA -keysize 2048 -validity 10000 -alias upload \
           -storepass android123 -keypass android123 \
           -dname "CN=MSB Creative Studios, OU=MSB, O=MSB, L=Chennai, S=Tamil Nadu, C=IN"
           
-          echo "--- COPY THIS ENTIRE BLOCK BELOW ---"
-          base64 my-upload-key.jks
-          echo "--- END OF BLOCK ---"
+          # 2. Print the Base64 code clearly
+          echo "### START_BASE64_CODE ###"
+          base64 -w 0 my-upload-key.jks
+          echo -e "\n### END_BASE64_CODE ###"
