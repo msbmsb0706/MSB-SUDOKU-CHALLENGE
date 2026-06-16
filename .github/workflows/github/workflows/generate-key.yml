@@ -12,7 +12,8 @@ jobs:
           -keyalg RSA -keysize 2048 -validity 10000 -alias upload \
           -storepass android123 -keypass android123 \
           -dname "CN=MSB Creative Studios, OU=MSB, O=MSB, L=Chennai, S=Tamil Nadu, C=IN"
-          
+           # ADD THIS LINE BELOW:
+          base64 my-upload-key.jks
           # 2. Print the Base64 code clearly
           echo "### START_BASE64_CODE ###"
           base64 -w 0 my-upload-key.jks
