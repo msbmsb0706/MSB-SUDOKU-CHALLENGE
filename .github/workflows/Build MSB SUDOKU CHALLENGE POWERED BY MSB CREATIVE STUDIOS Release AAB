@@ -1,1 +1,58 @@
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      STORE_PASSWORD: android123
+      KEY_PASSWORD: android123
+      KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Create release keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore "$KEYSTORE_PATH" \
+            -storepass "$STORE_PASSWORD" \
+            -keypass "$KEY_PASSWORD" \
+            -alias upload \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=N-Educate, OU=N-Educate, O=N-Educate, L=Accra, S=Greater Accra, C=GH"
+
+      - name: Build Signed Release AAB
+        run: gradle bundleRelease --stacktrace
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-MSB SUDOKU CHALLENGE POWERED BY MSB CREATIVE STUDIOS-aab
+          path: app/build/outputs/bundle/release/app-release.aab
+
+      - name: Upload Keystore Backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: save-this-keystore
+          path: my-upload-key.jks
 
