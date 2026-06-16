@@ -1,4 +1,4 @@
-name: Generate Keystore
+name: Generate and Export Keystore
 on: workflow_dispatch
 
 jobs:
@@ -12,5 +12,6 @@ jobs:
           -storepass android123 -keypass android123 \
           -dname "CN=MSB Creative Studios, OU=MSB, O=MSB, L=Chennai, S=Tamil Nadu, C=IN"
           
-          echo "Base64 version for your Secret:"
+          echo "--- COPY THIS ENTIRE BLOCK BELOW ---"
           base64 my-upload-key.jks
+          echo "--- END OF BLOCK ---"
