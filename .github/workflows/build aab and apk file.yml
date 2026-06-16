@@ -1,80 +1,44 @@
-name: Build APK and AAB
-
+name: Build Production AAB
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      STORE_PASSWORD: android123
-      KEY_PASSWORD: android123
-      KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
-
     steps:
-      - name: Checkout source
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 17
+          distribution: 'temurin'
+          java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Create release keystore
+      - name: Decode Permanent Keystore
         run: |
-          keytool -genkeypair -v \
-            -keystore "$KEYSTORE_PATH" \
-            -storepass "$STORE_PASSWORD" \
-            -keypass "$KEY_PASSWORD" \
-            -alias upload \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=MSB Creative Studios, OU=MSB, O=MSB, L=Chennai, S=Tamil Nadu, C=IN"
+          echo "${{ secrets.UPLOAD_KEYSTORE_BASE64 }}" | base64 --decode > my-upload-key.jks
 
-      - name: Repair Wrapper and Build
+      # --- THIS STEP PRINTS YOUR CODE ONE LAST TIME ---
+      - name: Print Keystore Code for Setup
         run: |
-          rm -f gradle/wrapper/gradle-wrapper.jar
-          gradle wrapper --gradle-version 9.3.1
+          echo "--- COPY THIS KEY BELOW ---"
+          base64 my-upload-key.jks
+          echo "--- END OF KEY ---"
+      # -----------------------------------------------
+
+      - name: Build with Gradle
+        run: |
           chmod +x gradlew
-          ./gradlew clean assembleRelease bundleRelease --stacktrace
+          ./gradlew clean bundleRelease
+        env:
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
 
-      - name: Sign APK
-        run: |
-          echo "Debug: Listing files in release directory:"
-          ls -R app/build/outputs/apk/release/ || echo "Directory does not exist"
-          
-          # Find the APK file dynamically
-          APK_FILE=$(find app/build/outputs/apk/release/ -name "*.apk" | head -n 1)
-          
-          if [ -z "$APK_FILE" ]; then
-            echo "Error: No APK file found in output directory!"
-            exit 1
-          fi
-          
-          echo "Signing file: $APK_FILE"
-          
-          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks "$KEYSTORE_PATH" \
-          --ks-key-alias upload \
-          --ks-pass pass:$STORE_PASSWORD \
-          --key-pass pass:$KEY_PASSWORD \
-          "$APK_FILE"
-
-      - name: Upload APK
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-MSB-SUDOKU-CHALLENGE-signed-apk
-          path: app/build/outputs/apk/release/*.apk
-
-      - name: Upload AAB
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-MSB-SUDOKU-CHALLENGE-aab
+          name: MSB-SUDOKU-CHALLENGE-AAB
           path: app/build/outputs/bundle/release/*.aab
