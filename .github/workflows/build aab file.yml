@@ -28,7 +28,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.11'
+          gradle-version: '9.3.1'
           validate-wrappers: false
           cache-disabled: true
 
@@ -45,7 +45,6 @@ jobs:
             -dname "CN=N-Educate, OU=N-Educate, O=N-Educate, L=Accra, S=Greater Accra, C=GH"
 
       - name: Build Signed Release AAB
-        # This uses the clean gradle version downloaded by setup-gradle
         run: gradle bundleRelease --stacktrace
 
       - name: Upload AAB
