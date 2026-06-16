@@ -45,6 +45,7 @@ jobs:
             -dname "CN=N-Educate, OU=N-Educate, O=N-Educate, L=Accra, S=Greater Accra, C=GH"
 
       - name: Build Signed Release AAB
+        # This uses the clean gradle version downloaded by setup-gradle
         run: gradle bundleRelease --stacktrace
 
       - name: Upload AAB
@@ -52,9 +53,3 @@ jobs:
         with:
           name: app-MSB-SUDOKU-CHALLENGE-aab
           path: app/build/outputs/bundle/release/app-release.aab
-
-      - name: Upload Keystore Backup
-        uses: actions/upload-artifact@v4
-        with:
-          name: save-this-keystore
-          path: my-upload-key.jks
