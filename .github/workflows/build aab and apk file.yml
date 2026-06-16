@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: android-actions/setup-java@v4
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
@@ -48,11 +48,10 @@ jobs:
 
       - name: Sign APK
         run: |
-          # 1. List contents to debug path
           echo "Debug: Listing files in release directory:"
           ls -R app/build/outputs/apk/release/ || echo "Directory does not exist"
           
-          # 2. Find the APK file dynamically
+          # Find the APK file dynamically
           APK_FILE=$(find app/build/outputs/apk/release/ -name "*.apk" | head -n 1)
           
           if [ -z "$APK_FILE" ]; then
