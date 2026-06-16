@@ -25,15 +25,36 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # --- NEW STRATEGY: FORCE GRADLE DOWNLOAD ---
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
+          gradle-version: '8.11'
           validate-wrappers: false
-          # We remove the jar reliance by forcing the runner to install the version
-      
-      # Build using the Gradle binary directly installed by setup-gradle
+          cache-disabled: true
+
+      - name: Create release keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore "$KEYSTORE_PATH" \
+            -storepass "$STORE_PASSWORD" \
+            -keypass "$KEY_PASSWORD" \
+            -alias upload \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=N-Educate, OU=N-Educate, O=N-Educate, L=Accra, S=Greater Accra, C=GH"
+
       - name: Build Signed Release AAB
         run: gradle bundleRelease --stacktrace
 
-      # ... (rest of your steps for keystore, uploading, etc.)
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-MSB-SUDOKU-CHALLENGE-aab
+          path: app/build/outputs/bundle/release/app-release.aab
+
+      - name: Upload Keystore Backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: save-this-keystore
+          path: my-upload-key.jks
