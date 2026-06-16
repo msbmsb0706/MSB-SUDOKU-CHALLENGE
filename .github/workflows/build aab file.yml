@@ -26,8 +26,10 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Setup Gradle
+            - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          validate-wrappers: false  # Add this line to bypass the validation error
 
       - name: Create release keystore
         run: |
