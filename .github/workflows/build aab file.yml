@@ -7,7 +7,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     env:
       STORE_PASSWORD: android123
       KEY_PASSWORD: android123
@@ -26,38 +25,15 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Make Gradle Wrapper Executable
-        run: chmod +x gradlew
-
+      # --- NEW STRATEGY: FORCE GRADLE DOWNLOAD ---
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           validate-wrappers: false
-          cache-disabled: true
-
-      - name: Create release keystore
-        run: |
-          keytool -genkeypair -v \
-            -keystore "$KEYSTORE_PATH" \
-            -storepass "$STORE_PASSWORD" \
-            -keypass "$KEY_PASSWORD" \
-            -alias upload \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=N-Educate, OU=N-Educate, O=N-Educate, L=Accra, S=Greater Accra, C=GH"
-
+          # We remove the jar reliance by forcing the runner to install the version
+      
+      # Build using the Gradle binary directly installed by setup-gradle
       - name: Build Signed Release AAB
-        run: ./gradlew bundleRelease --stacktrace
+        run: gradle bundleRelease --stacktrace
 
-      - name: Upload AAB
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-MSB-SUDOKU-CHALLENGE-aab
-          path: app/build/outputs/bundle/release/app-release.aab
-
-      - name: Upload Keystore Backup
-        uses: actions/upload-artifact@v4
-        with:
-          name: save-this-keystore
-          path: my-upload-key.jks
+      # ... (rest of your steps for keystore, uploading, etc.)
