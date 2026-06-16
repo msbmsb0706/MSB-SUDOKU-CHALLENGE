@@ -1,3 +1,4 @@
+name: Build APK and AAB
 on:
   push:
     branches:
@@ -16,21 +17,14 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 17
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '9.3.1'
-          validate-wrappers: false
-          cache-disabled: true
 
       - name: Create release keystore
         run: |
@@ -42,20 +36,34 @@ jobs:
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
-            -dname "CN=N-Educate, OU=N-Educate, O=N-Educate, L=Accra, S=Greater Accra, C=GH"
+            -dname "CN=MSB Creative Studios, OU=MSB, O=MSB, L=Chennai, S=Tamil Nadu, C=IN"
 
-      - name: Build Signed Release AAB
-        run: gradle bundleRelease --stacktrace
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.3.1'
+          validate-wrappers: false
+          cache-disabled: true
+
+      - name: Build Release APK and AAB
+        run: gradle assembleRelease bundleRelease --stacktrace
+
+      - name: Sign APK
+        run: |
+          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks "$KEYSTORE_PATH" \
+          --ks-key-alias upload \
+          --ks-pass pass:$STORE_PASSWORD \
+          --key-pass pass:$KEY_PASSWORD \
+          app/build/outputs/apk/release/app-release-unsigned.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-MSB-SUDOKU-CHALLENGE-signed-apk
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
 
       - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
           name: app-MSB-SUDOKU-CHALLENGE-aab
           path: app/build/outputs/bundle/release/app-release.aab
-
-      # This path now correctly references the environment variable used for the keystore
-      - name: Upload Keystore Backup
-        uses: actions/upload-artifact@v4
-        with:
-          name: save-this-keystore
-          path: ${{ env.KEYSTORE_PATH }}
