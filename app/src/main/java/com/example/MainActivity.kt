@@ -29,6 +29,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -165,6 +167,17 @@ fun MainScaffold(viewModel: SudokuViewModel) {
     val levelUpValue by viewModel.levelUpEvent.collectAsStateWithLifecycle()
     val isSoundEnabled by viewModel.isSoundEnabled.collectAsStateWithLifecycle()
     val showGuestLimitResult by viewModel.showGuestLimitReachedDialog.collectAsStateWithLifecycle()
+
+    val haptic = LocalHapticFeedback.current
+    val triggerMistakeVibration by viewModel.triggerMistakeVibration.collectAsStateWithLifecycle()
+
+    LaunchedEffect(triggerMistakeVibration) {
+        if (triggerMistakeVibration > 0L) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            kotlinx.coroutines.delay(120)
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+    }
 
     AuthStateContainer(viewModel = viewModel) {
         Scaffold(
@@ -1019,13 +1032,18 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
         }
         PlayTabScreen.GameBoard -> {
             // Live Puzzle Active Canvas
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val isCompactHeight = maxHeight < 640.dp
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 12.dp, vertical = if (isCompactHeight) 4.dp else 12.dp)
+                        .then(
+                            if (isCompactHeight) Modifier.verticalScroll(rememberScrollState()) else Modifier
+                        ),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = if (isCompactHeight) Arrangement.spacedBy(8.dp) else Arrangement.SpaceBetween
+                ) {
                 // Info line: Timer, mistakes count, pause
                 Row(
                     modifier = Modifier
@@ -1223,7 +1241,18 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                 }
 
                 // 2. The Custom dynamic grid (4x4 or 9x9!)
-                Box(modifier = Modifier.weight(1.0f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = if (isCompactHeight) {
+                        Modifier
+                            .fillMaxWidth(0.9f)
+                            .aspectRatio(1f)
+                    } else {
+                        Modifier
+                            .weight(1.0f)
+                            .fillMaxWidth()
+                    },
+                    contentAlignment = Alignment.Center
+                ) {
                     SudokuGrid(
                         grid = grid,
                         selectedCell = selectedCell,
@@ -1249,6 +1278,7 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                     hideLastRow = hideLastRow,
                     onToggleHideLastRow = { viewModel.toggleHideLastRowNumbers() }
                 )
+            }
             }
         }
         PlayTabScreen.TermsAndPolicy -> {

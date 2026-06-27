@@ -12,7 +12,7 @@ android {
 
   defaultConfig {
     applicationId = "com.example.sudoku"
-    minSdk = 27
+    minSdk = 28
     targetSdk = 34
     versionCode = 1
     versionName = "1.0"
@@ -41,8 +41,8 @@ android {
       isCrunchPngs = false
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      
-      }
+      signingConfig = signingConfigs.getByName("release")
+    }
     debug {
     }
   }

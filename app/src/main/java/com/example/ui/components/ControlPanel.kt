@@ -2,7 +2,9 @@ package com.example.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -40,13 +42,15 @@ fun ControlPanel(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         // Core tools: Pencil Toggle, Erase, Hint
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Pencil Toggle Button
             ToolButton(
@@ -55,17 +59,19 @@ fun ControlPanel(
                 isActive = pencilMode,
                 onClick = onPencilToggle,
                 badge = if (pencilMode) "ON" else null,
-                testTag = "pencil_tool_btn"
+                testTag = "pencil_tool_btn",
+                modifier = Modifier.weight(1f)
             )
 
-            // Erase / Clear Button (Highlighted with a custom subtle color for priority erase action!)
+            // Erase / Clear Button
             ToolButton(
                 icon = Icons.Default.Clear,
                 label = "Erase",
                 isActive = false,
                 onClick = onClear,
                 badge = null,
-                testTag = "erase_tool_btn"
+                testTag = "erase_tool_btn",
+                modifier = Modifier.weight(1f)
             )
 
             // Hint Button
@@ -75,24 +81,25 @@ fun ControlPanel(
                 isActive = false,
                 onClick = onHint,
                 badge = "${gemsRemaining}G", // displays remaining gems
-                testTag = "hint_tool_btn"
+                testTag = "hint_tool_btn",
+                modifier = Modifier.weight(1f)
             )
         }
 
-        // Dynamic Input Keyboard Grid (1..4 for Quick grid, 1..9 for Standard matrix!)
+        // Dynamic Input Keyboard Grid - compact scrollable horizontal bar supporting all displays!
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically
         ) {
             for (num in 1..gridSize) {
                 Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(12.dp))
+                        .size(46.dp)
+                        .clip(RoundedCornerShape(10.dp))
                         .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f))
                         .clickable { onNumberEntered(num) }
                         .testTag("num_pad_$num"),
@@ -103,7 +110,7 @@ fun ControlPanel(
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         fontWeight = FontWeight.Bold,
-                        fontSize = if (gridSize == 4) 28.sp else 22.sp
+                        fontSize = if (gridSize == 4) 24.sp else 20.sp
                     )
                 }
             }
@@ -178,16 +185,16 @@ fun ToolButton(
     isActive: Boolean,
     onClick: () -> Unit,
     badge: String? = null,
-    testTag: String
+    testTag: String,
+    modifier: Modifier = Modifier
 ) {
     val containerColor = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
     val iconColor = if (isActive) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
 
     Box(
-        modifier = Modifier
-            .width(96.dp)
-            .height(54.dp)
-            .clip(RoundedCornerShape(14.dp))
+        modifier = modifier
+            .height(48.dp)
+            .clip(RoundedCornerShape(12.dp))
             .background(containerColor)
             .clickable { onClick() }
             .testTag(testTag),

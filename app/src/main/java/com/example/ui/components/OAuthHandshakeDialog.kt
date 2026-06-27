@@ -42,11 +42,12 @@ fun OAuthHandshakeDialog(
     var stage by remember { mutableStateOf(OAuthStage.CREDENTIALS) }
     var inputEmail by remember { mutableStateOf(
         if (suggestedHandle.isNotBlank()) {
-            if (suggestedHandle.contains("@") || platform != "Instagram") suggestedHandle else "@$suggestedHandle"
+            if (suggestedHandle.contains("@") || (platform != "Instagram" && platform != "Google")) suggestedHandle else "@$suggestedHandle"
         } else {
             when (platform) {
                 "LinkedIn" -> "sudokusolver_master@linkedin.com"
                 "Facebook" -> "sudoku_grandmaster_fb"
+                "Google" -> "msbmsb0706@gmail.com"
                 else -> "@sudoku_grandmaster"
             }
         }
@@ -65,12 +66,14 @@ fun OAuthHandshakeDialog(
     val totalPointsBenefit = when (platform) {
         "LinkedIn" -> 500
         "Facebook" -> 300
+        "Google" -> 1000
         else -> 400
     }
 
     val platformColor = when (platform) {
         "LinkedIn" -> Color(0xFF0077B5)
         "Facebook" -> Color(0xFF3B5998)
+        "Google" -> Color(0xFFEA4335)
         else -> Color(0xFFE1306C)
     }
     
@@ -138,6 +141,7 @@ fun OAuthHandshakeDialog(
                             text = when (platform) {
                                 "LinkedIn" -> "https://linkedin.com/oauth/v2/authorization?client_id=msb_sdk_910&scope=r_liteprofile"
                                 "Facebook" -> "https://facebook.com/v14.0/dialog/oauth?client_id=msb_fb_302&redirect_uri=msb://oauth"
+                                "Google" -> "https://accounts.google.com/o/oauth2/v2/auth?client_id=msb_google_998&response_type=code&scope=email+profile"
                                 else -> "https://api.instagram.com/oauth/authorize?client_id=msb_insta_662&response_type=code"
                             },
                             style = MaterialTheme.typography.bodySmall,
@@ -206,6 +210,7 @@ fun OAuthHandshakeDialog(
                                     text = when (platform) {
                                         "LinkedIn" -> "🔗"
                                         "Facebook" -> "👥"
+                                        "Google" -> "📧"
                                         else -> "📸"
                                     },
                                     fontSize = 24.sp
@@ -236,6 +241,7 @@ fun OAuthHandshakeDialog(
                                     text = when (platform) {
                                         "LinkedIn" -> "LinkedIn Email or Username:"
                                         "Facebook" -> "Facebook Email or Phone Number:"
+                                        "Google" -> "Google Email Account:"
                                         else -> "Instagram Username (@handle):"
                                     },
                                     fontSize = 11.sp,
@@ -254,6 +260,7 @@ fun OAuthHandshakeDialog(
                                             when (platform) {
                                                 "LinkedIn" -> "example@linkedin.com"
                                                 "Facebook" -> "example@facebook.com or phone"
+                                                "Google" -> "example@gmail.com"
                                                 else -> "@username"
                                             }
                                         )
@@ -263,6 +270,7 @@ fun OAuthHandshakeDialog(
                                             imageVector = when (platform) {
                                                 "LinkedIn" -> Icons.Default.Email
                                                 "Facebook" -> Icons.Default.Email
+                                                "Google" -> Icons.Default.Email
                                                 else -> Icons.Default.Person
                                             },
                                             contentDescription = null,
@@ -381,6 +389,7 @@ fun OAuthHandshakeDialog(
                                             text = when (platform) {
                                                 "LinkedIn" -> "r_liteprofile (Basic Profile Info)"
                                                 "Facebook" -> "public_profile (Name & Avatar)"
+                                                "Google" -> "openid email profile (Google Account Details)"
                                                 else -> "instagram_graph_user_profile"
                                             },
                                             fontWeight = FontWeight.Bold,
@@ -414,6 +423,7 @@ fun OAuthHandshakeDialog(
                                             text = when (platform) {
                                                 "LinkedIn" -> "w_member_social (Post Achievements)"
                                                 "Facebook" -> "publish_to_groups (Share Milestones)"
+                                                "Google" -> "google_play_games (Upload Score Achievements)"
                                                 else -> "instagram_graph_user_media (Share Badges)"
                                             },
                                             fontWeight = FontWeight.Bold,

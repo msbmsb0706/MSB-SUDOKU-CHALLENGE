@@ -97,78 +97,163 @@ fun AuthStateContainer(
     authenticatedContent: @Composable () -> Unit
 ) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val showGoogleOAuthDialog by viewModel.showGoogleOAuthDialog.collectAsStateWithLifecycle()
+    val activeNotification by viewModel.activeNotification.collectAsStateWithLifecycle()
 
-    AnimatedContent(
-        targetState = authState,
-        transitionSpec = {
-            fadeIn() togetherWith fadeOut()
-        },
-        label = "auth_anim"
-    ) { state ->
-        when (state) {
-            is AuthState.Authenticated -> {
-                authenticatedContent()
+    if (showGoogleOAuthDialog) {
+        OAuthHandshakeDialog(
+            platform = "Google",
+            suggestedHandle = "msbmsb0706@gmail.com",
+            onDismiss = { viewModel.showGoogleOAuthDialog.value = false },
+            onSuccess = { email ->
+                viewModel.showGoogleOAuthDialog.value = false
+                viewModel.finalizeGoogleLogin(email)
             }
-            is AuthState.Welcome -> {
-                AuthWelcomeScreen(
-                    viewModel = viewModel,
-                    onLoginClick = { viewModel.authState.value = AuthState.LoggingIn },
-                    onRegisterClick = { viewModel.authState.value = AuthState.Registering }
-                )
+        )
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        AnimatedContent(
+            targetState = authState,
+            transitionSpec = {
+                fadeIn() togetherWith fadeOut()
+            },
+            label = "auth_anim",
+            modifier = Modifier.fillMaxSize()
+        ) { state ->
+            when (state) {
+                is AuthState.Authenticated -> {
+                    authenticatedContent()
+                }
+                is AuthState.Welcome -> {
+                    AuthWelcomeScreen(
+                        viewModel = viewModel,
+                        onLoginClick = { viewModel.authState.value = AuthState.LoggingIn },
+                        onRegisterClick = { viewModel.authState.value = AuthState.Registering }
+                    )
+                }
+                is AuthState.LoggingIn -> {
+                    AuthLoginScreen(
+                        viewModel = viewModel,
+                        onBackClicked = { viewModel.authState.value = AuthState.Welcome },
+                        onResetPassClicked = { viewModel.authState.value = AuthState.ForgetPasswordStep1("") }
+                    )
+                }
+                is AuthState.OtpVerification -> {
+                    AdminOtpScreen(
+                        viewModel = viewModel,
+                        email = state.email,
+                        generatedOtp = state.generatedOtp,
+                        onBackClicked = { viewModel.authState.value = AuthState.Welcome }
+                    )
+                }
+                is AuthState.Registering -> {
+                    AuthRegisterScreen(
+                        viewModel = viewModel,
+                        onBackClicked = { viewModel.authState.value = AuthState.Welcome }
+                    )
+                }
+                is AuthState.ForgetPasswordStep1 -> {
+                    ForgetPasswordStep1Screen(
+                        viewModel = viewModel,
+                        initialEmail = state.email,
+                        onBackClicked = { viewModel.authState.value = AuthState.LoggingIn }
+                    )
+                }
+                is AuthState.ForgetPasswordStep2 -> {
+                    ForgetPasswordStep2Screen(
+                        viewModel = viewModel,
+                        email = state.email,
+                        question = state.question,
+                        onBackClicked = { viewModel.authState.value = AuthState.ForgetPasswordStep1(state.email) }
+                    )
+                }
+                is AuthState.ForgetPasswordOtpVerification -> {
+                    ForgetPasswordOtpScreen(
+                        viewModel = viewModel,
+                        email = state.email,
+                        generatedOtp = state.generatedOtp,
+                        onBackClicked = { viewModel.authState.value = AuthState.ForgetPasswordStep1(state.email) }
+                    )
+                }
+                is AuthState.ForgetPasswordReset -> {
+                    ForgetPasswordResetScreen(
+                        viewModel = viewModel,
+                        email = state.email,
+                        onBackClicked = { viewModel.authState.value = AuthState.ForgetPasswordStep1(state.email) }
+                    )
+                }
+                is AuthState.ForgetPasswordSuccess -> {
+                    ForgetPasswordSuccessScreen(email = state.email)
+                }
             }
-            is AuthState.LoggingIn -> {
-                AuthLoginScreen(
-                    viewModel = viewModel,
-                    onBackClicked = { viewModel.authState.value = AuthState.Welcome },
-                    onResetPassClicked = { viewModel.authState.value = AuthState.ForgetPasswordStep1("") }
-                )
-            }
-            is AuthState.OtpVerification -> {
-                AdminOtpScreen(
-                    viewModel = viewModel,
-                    email = state.email,
-                    generatedOtp = state.generatedOtp,
-                    onBackClicked = { viewModel.authState.value = AuthState.LoggingIn }
-                )
-            }
-            is AuthState.Registering -> {
-                AuthRegisterScreen(
-                    viewModel = viewModel,
-                    onBackClicked = { viewModel.authState.value = AuthState.Welcome }
-                )
-            }
-            is AuthState.ForgetPasswordStep1 -> {
-                ForgetPasswordStep1Screen(
-                    viewModel = viewModel,
-                    initialEmail = state.email,
-                    onBackClicked = { viewModel.authState.value = AuthState.LoggingIn }
-                )
-            }
-            is AuthState.ForgetPasswordStep2 -> {
-                ForgetPasswordStep2Screen(
-                    viewModel = viewModel,
-                    email = state.email,
-                    question = state.question,
-                    onBackClicked = { viewModel.authState.value = AuthState.ForgetPasswordStep1(state.email) }
-                )
-            }
-            is AuthState.ForgetPasswordOtpVerification -> {
-                ForgetPasswordOtpScreen(
-                    viewModel = viewModel,
-                    email = state.email,
-                    generatedOtp = state.generatedOtp,
-                    onBackClicked = { viewModel.authState.value = AuthState.ForgetPasswordStep1(state.email) }
-                )
-            }
-            is AuthState.ForgetPasswordReset -> {
-                ForgetPasswordResetScreen(
-                    viewModel = viewModel,
-                    email = state.email,
-                    onBackClicked = { viewModel.authState.value = AuthState.ForgetPasswordStep1(state.email) }
-                )
-            }
-            is AuthState.ForgetPasswordSuccess -> {
-                ForgetPasswordSuccessScreen(email = state.email)
+        }
+
+        // Beautiful floating native-style simulated notification alert banner at the top
+        activeNotification?.let { notif ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .padding(16.dp)
+                    .statusBarsPadding()
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            // Automatically bypass security and head directly to password reset destination!
+                            viewModel.authState.value = AuthState.ForgetPasswordReset(notif.account)
+                            viewModel.activeNotification.value = null
+                        },
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = notif.title,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = notif.message,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "👉 TAP HERE TO INSTANTLY VERIFY & RESET PASSWORD",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { viewModel.activeNotification.value = null },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Dismiss Notification",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -1434,6 +1519,17 @@ fun ForgetPasswordStep1Screen(
     var email by remember { mutableStateOf(initialEmail) }
     val forgetPasswordError by viewModel.forgetPasswordError.collectAsStateWithLifecycle()
 
+    // Dynamically show the correct icon based on user input
+    val inputIcon = remember(email) {
+        val trimmed = email.trim()
+        when {
+            trimmed.isEmpty() -> Icons.Default.Email
+            trimmed.all { it.isDigit() || it == '+' || it == '-' || it == ' ' } -> Icons.Default.Phone
+            trimmed.contains("gmail", ignoreCase = true) || trimmed.contains("google", ignoreCase = true) -> Icons.Default.Email
+            else -> Icons.Default.Email
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1462,7 +1558,7 @@ fun ForgetPasswordStep1Screen(
                 textAlign = TextAlign.Center
             )
             Text(
-                text = "Step 1 of 2: Look up security questions",
+                text = "Reset password via Email, Google Account, or Mobile",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -1473,8 +1569,9 @@ fun ForgetPasswordStep1Screen(
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Registered Email Address") },
-                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                label = { Text("Email Address or Mobile Number") },
+                placeholder = { Text("example@gmail.com or +123456789") },
+                leadingIcon = { Icon(inputIcon, contentDescription = null) },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1503,6 +1600,7 @@ fun ForgetPasswordStep1Screen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Method 1: Look up security question
             Button(
                 onClick = { viewModel.requestRecoveryQuestion(email) },
                 modifier = Modifier
@@ -1516,6 +1614,7 @@ fun ForgetPasswordStep1Screen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // Method 2: Send Recovery OTP
             Button(
                 onClick = { viewModel.requestRecoveryOtp(email) },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
@@ -1527,10 +1626,27 @@ fun ForgetPasswordStep1Screen(
             ) {
                 Icon(Icons.Default.Send, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("SEND RECOVERY OTP TO EMAIL", fontWeight = FontWeight.Bold)
+                Text("SEND RECOVERY OTP CODE", fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(12.dp))
+
+            // Method 3: Send Change Password Link
+            Button(
+                onClick = { viewModel.requestRecoveryLink(email) },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .testTag("recovery_link_request_btn"),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Share, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("SEND PASSWORD RESET LINK", fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
 
             OutlinedButton(
                 onClick = onBackClicked,
@@ -1614,6 +1730,15 @@ fun ForgetPasswordStep2Screen(
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
+                    if (question == "What is your favorite game?") {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "(Tip: The default answer is 'Sudoku')",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
 

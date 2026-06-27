@@ -137,6 +137,10 @@ class SudokuViewModel(
 
     val authState = MutableStateFlow<AuthState>(AuthState.Welcome)
     val secureOtpEnabled = MutableStateFlow(true)
+    val showGoogleOAuthDialog = MutableStateFlow(false)
+    val activeNotification = MutableStateFlow<SimulatedNotification?>(null)
+    val triggerMistakeVibration = MutableStateFlow(0L)
+    private var hasAttemptedStartupGoogleLogin = false
 
     // --- User profile stats collected from DB ---
     val userProfile = repository.userProfile.stateIn(
@@ -205,12 +209,22 @@ class SudokuViewModel(
                     val isGuestList = profile.userId.startsWith("guest_player_")
                     if (isGuestList && prefs.getBoolean("persistent_guest_blocked", false)) {
                         repository.logOutAll()
-                        authState.value = AuthState.Welcome
+                        if (!hasAttemptedStartupGoogleLogin) {
+                            hasAttemptedStartupGoogleLogin = true
+                            signInWithGoogle()
+                        } else {
+                            authState.value = AuthState.Welcome
+                        }
                     } else {
                         authState.value = AuthState.Authenticated
                     }
                 } else {
-                    authState.value = AuthState.Welcome
+                    if (!hasAttemptedStartupGoogleLogin) {
+                        hasAttemptedStartupGoogleLogin = true
+                        signInWithGoogle()
+                    } else {
+                        authState.value = AuthState.Welcome
+                    }
                 }
             } ?: run {
                 val hasSaved = prefs.contains("saved_username")
@@ -230,7 +244,7 @@ class SudokuViewModel(
                         passwordHash = "adminPass",
                         securityQuestion = "What is our studio name?",
                         securityAnswer = "MSB Creative",
-                        isLoggedIn = prefs.getBoolean("saved_is_logged_in", false)
+                        isLoggedIn = false
                     )
                 } else {
                     UserProfileEntity(
@@ -252,14 +266,9 @@ class SudokuViewModel(
                     )
                 }
                 repository.saveUserProfile(demoProfile)
-                if (demoProfile.isLoggedIn) {
-                    val isGuestList = demoProfile.userId.startsWith("guest_player_")
-                    if (isGuestList && prefs.getBoolean("persistent_guest_blocked", false)) {
-                        repository.logOutAll()
-                        authState.value = AuthState.Welcome
-                    } else {
-                        authState.value = AuthState.Authenticated
-                    }
+                if (!hasAttemptedStartupGoogleLogin) {
+                    hasAttemptedStartupGoogleLogin = true
+                    signInWithGoogle()
                 } else {
                     authState.value = AuthState.Welcome
                 }
@@ -636,6 +645,10 @@ class SudokuViewModel(
                 mistakeCount.value += 1
             }
 
+            if (isError) {
+                triggerMistakeVibration.value = System.currentTimeMillis()
+            }
+
             if (isCorrect) {
                 SoundManager.playCorrect()
             } else {
@@ -645,6 +658,7 @@ class SudokuViewModel(
             currentCells[index] = cell.copy(
                 value = number,
                 isError = isError,
+                isHint = false,
                 pencilNotes = emptySet() // Clear notes on final entry
             )
             _grid.value = currentCells
@@ -703,6 +717,7 @@ class SudokuViewModel(
         currentCells[idx] = currentCells[idx].copy(
             value = _solution.value[r][c],
             isError = false,
+            isHint = true,
             pencilNotes = emptySet()
         )
         _grid.value = currentCells
@@ -1403,10 +1418,15 @@ class SudokuViewModel(
                 updatedChat.add("System: Cell ($r, $c) correctly solved as $number!")
             }
 
+            if (isError) {
+                triggerMistakeVibration.value = System.currentTimeMillis()
+            }
+
             // Update cell value
             currentCells[index] = cell.copy(
                 value = number,
-                isError = isError
+                isError = isError,
+                isHint = false
             )
 
             // Recalculate player progress
@@ -1807,39 +1827,36 @@ class SudokuViewModel(
     }
 
     fun signInWithGoogle() {
-        val email = "msbmsb0706@gmail.com"
+        showGoogleOAuthDialog.value = true
+    }
+
+    fun finalizeGoogleLogin(email: String) {
         viewModelScope.launch {
             var existing = repository.getUserProfileByEmail(email)
             val finalProfile = if (existing != null) {
-                existing.copy(isLoggedIn = !secureOtpEnabled.value)
+                existing.copy(isLoggedIn = true)
             } else {
                 UserProfileEntity(
                     userId = email,
-                    username = prefs.getString("saved_username", "MSB GRANDMASTER") ?: "MSB GRANDMASTER",
-                    region = prefs.getString("saved_region", "Asia-Pacific") ?: "Asia-Pacific",
-                    countryName = prefs.getString("saved_country_name", "Singapore") ?: "Singapore",
-                    countryFlag = prefs.getString("saved_country_flag", "🇸🇬") ?: "🇸🇬",
-                    xp = prefs.getInt("saved_xp", 750),
-                    level = prefs.getInt("saved_level", 5),
-                    playGoldPoints = prefs.getInt("saved_play_gold_points", 12500),
-                    gems = prefs.getInt("saved_gems", 180),
+                    username = "MSB GRANDMASTER",
+                    region = "Asia-Pacific",
+                    countryName = "Singapore",
+                    countryFlag = "🇸🇬",
+                    xp = 750,
+                    level = 5,
+                    playGoldPoints = 12500,
+                    gems = 180,
                     passwordHash = "googleSecurePass123",
-                    securityQuestion = "Google Provider Login Status",
-                    securityAnswer = "Verified",
-                    isLoggedIn = !secureOtpEnabled.value
+                    securityQuestion = "What is your favorite game?",
+                    securityAnswer = "Sudoku",
+                    isLoggedIn = true
                 )
             }
-            
             repository.logOutAll()
             repository.saveUserProfile(finalProfile)
-
-            if (secureOtpEnabled.value) {
-                val generatedOtp = (100000..999999).random().toString()
-                authState.value = AuthState.OtpVerification(email, generatedOtp)
-            } else {
-                authState.value = AuthState.Authenticated
-                activeTab.value = 0
-            }
+            backupToPrefs(finalProfile)
+            authState.value = AuthState.Authenticated
+            activeTab.value = 0
         }
     }
 
@@ -1881,10 +1898,24 @@ class SudokuViewModel(
         }
         forgetPasswordError.value = null
         viewModelScope.launch {
-            val user = repository.getUserProfileByEmail(email)
+            var user = repository.getUserProfileByEmail(email)
             if (user == null) {
-                forgetPasswordError.value = "User folder not registered in local directories."
-                return@launch
+                user = UserProfileEntity(
+                    userId = email,
+                    username = "Player_" + email.substringBefore("@"),
+                    region = "Asia-Pacific",
+                    countryName = "Singapore",
+                    countryFlag = "🇸🇬",
+                    xp = 500,
+                    level = 3,
+                    playGoldPoints = 2500,
+                    gems = 50,
+                    passwordHash = "tempPass123",
+                    securityQuestion = "What is your favorite game?",
+                    securityAnswer = "Sudoku",
+                    isLoggedIn = false
+                )
+                repository.saveUserProfile(user)
             }
             authState.value = AuthState.ForgetPasswordStep2(email, user.securityQuestion)
         }
@@ -1921,18 +1952,84 @@ class SudokuViewModel(
     fun requestRecoveryOtp(emailRaw: String) {
         val email = emailRaw.trim().lowercase()
         if (email.isBlank()) {
-            forgetPasswordError.value = "Please input registered email directory."
+            forgetPasswordError.value = "Please input registered email or mobile number."
             return
         }
         forgetPasswordError.value = null
         viewModelScope.launch {
-            val user = repository.getUserProfileByEmail(email)
+            var user = repository.getUserProfileByEmail(email)
             if (user == null) {
-                forgetPasswordError.value = "User folder not registered in local directories."
-                return@launch
+                user = UserProfileEntity(
+                    userId = email,
+                    username = "Player_" + if (email.contains("@")) email.substringBefore("@") else email,
+                    region = "Asia-Pacific",
+                    countryName = "Singapore",
+                    countryFlag = "🇸🇬",
+                    xp = 500,
+                    level = 3,
+                    playGoldPoints = 2500,
+                    gems = 50,
+                    passwordHash = "tempPass123",
+                    securityQuestion = "What is your favorite game?",
+                    securityAnswer = "Sudoku",
+                    isLoggedIn = false
+                )
+                repository.saveUserProfile(user)
             }
             val generatedOtp = (100000..999999).random().toString()
+            
+            // Post Simulated Notification
+            activeNotification.value = SimulatedNotification(
+                title = "📱 SMS/Email OTP Verification Received",
+                message = "Safe reset verification code: $generatedOtp. Tap here to autofill.",
+                type = "OTP",
+                data = generatedOtp,
+                account = email
+            )
+            
             authState.value = AuthState.ForgetPasswordOtpVerification(email, generatedOtp)
+        }
+    }
+
+    fun requestRecoveryLink(emailRaw: String) {
+        val email = emailRaw.trim().lowercase()
+        if (email.isBlank()) {
+            forgetPasswordError.value = "Please input registered email or mobile number."
+            return
+        }
+        forgetPasswordError.value = null
+        viewModelScope.launch {
+            var user = repository.getUserProfileByEmail(email)
+            if (user == null) {
+                user = UserProfileEntity(
+                    userId = email,
+                    username = "Player_" + if (email.contains("@")) email.substringBefore("@") else email,
+                    region = "Asia-Pacific",
+                    countryName = "Singapore",
+                    countryFlag = "🇸🇬",
+                    xp = 500,
+                    level = 3,
+                    playGoldPoints = 2500,
+                    gems = 50,
+                    passwordHash = "tempPass123",
+                    securityQuestion = "What is your favorite game?",
+                    securityAnswer = "Sudoku",
+                    isLoggedIn = false
+                )
+                repository.saveUserProfile(user)
+            }
+            val simulatedLink = "https://sudoku.msb.app/reset-password?account=$email"
+            
+            // Post Simulated Link Notification
+            activeNotification.value = SimulatedNotification(
+                title = "✉️ Password Reset Link Received",
+                message = "Reset link dispatched: $simulatedLink. Tap to bypass directly.",
+                type = "LINK",
+                data = simulatedLink,
+                account = email
+            )
+            
+            forgetPasswordError.value = "Simulated Link sent! Look at the top mock notification to bypass security."
         }
     }
 
@@ -2233,6 +2330,14 @@ class SudokuViewModelFactory(
 
 // --- Supporting Sealed State Classes ---
 
+data class SimulatedNotification(
+    val title: String,
+    val message: String,
+    val type: String, // "OTP" or "LINK"
+    val data: String, // the code or the url
+    val account: String
+)
+
 sealed class AuthState {
     object Welcome : AuthState()
     object LoggingIn : AuthState()
@@ -2304,7 +2409,8 @@ data class SudokuCell(
     val value: Int,
     val isClue: Boolean,
     val isError: Boolean = false,
-    val pencilNotes: Set<Int> = emptySet()
+    val pencilNotes: Set<Int> = emptySet(),
+    val isHint: Boolean = false
 )
 
 data class TournamentPlayer(

@@ -98,6 +98,7 @@ fun SudokuGrid(
                         val defaultBg = MaterialTheme.colorScheme.surface
                         val finalBg = when {
                             isPaused -> MaterialTheme.colorScheme.surfaceVariant
+                            cell.isHint -> Color(0xFFE8F5E9) // Pastel green / mint for hint cells
                             isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.55f) // Vivid focus active cell
                             cell.isError -> Color(0xFFFFCDD2) // Crimson error highlight
                             !disableGridHelpers && isMatchingValue -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.45f) // Distinct highlight for identical digits
@@ -138,6 +139,7 @@ fun SudokuGrid(
                                 if (cell.value > 0) {
                                     val isHiddenDigit = hideLastRow && r == size - 1
                                     val textColor = when {
+                                        cell.isHint -> Color(0xFF2E7D32) // Emerald Green for hint values
                                         cell.isClue -> MaterialTheme.colorScheme.onSurface
                                         cell.isError -> MaterialTheme.colorScheme.error
                                         else -> MaterialTheme.colorScheme.primary
