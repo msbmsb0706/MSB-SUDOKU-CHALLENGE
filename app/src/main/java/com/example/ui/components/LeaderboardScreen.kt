@@ -1123,9 +1123,7 @@ fun LeaderboardScreen(
                                                 isPaused = false,
                                                 disableGridHelpers = disableGridHelpers,
                                                 hideLastRow = hideLastRow,
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .aspectRatio(1f)
+                                                modifier = Modifier.padding(horizontal = 4.dp)
                                             )
                                         }
 
@@ -1174,11 +1172,13 @@ fun LeaderboardScreen(
                                             Box(
                                                 modifier = Modifier
                                                     .weight(1f)
+
                                                     .aspectRatio(1f)
                                                     .clip(RoundedCornerShape(6.dp))
                                                     .background(MaterialTheme.colorScheme.primaryContainer)
                                                     .clickable { onPvpNumberEntered(num) },
-                                                contentAlignment = Alignment.Center
+                                                 contentAlignment = Alignment.Center
+  
                                             ) {
                                                 Text(
                                                     text = num.toString(),

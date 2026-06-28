@@ -43,7 +43,7 @@ fun ControlPanel(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         // Core tools: Pencil Toggle, Erase, Hint
         Row(
@@ -98,7 +98,7 @@ fun ControlPanel(
             for (num in 1..gridSize) {
                 Box(
                     modifier = Modifier
-                        .size(46.dp)
+                        .size(42.dp)
                         .clip(RoundedCornerShape(10.dp))
                         .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f))
                         .clickable { onNumberEntered(num) }
@@ -193,7 +193,7 @@ fun ToolButton(
 
     Box(
         modifier = modifier
-            .height(48.dp)
+            .height(42.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(containerColor)
             .clickable { onClick() }

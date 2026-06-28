@@ -58,16 +58,26 @@ fun SudokuGrid(
     }
 
     BoxWithConstraints(
-        modifier = modifier
-            .fillMaxWidth()
-            .aspectRatio(1f)
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            .border(2.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        val cellSize = maxWidth / size
+        val boardSize = if (maxHeight > 0.dp && maxHeight.value.isFinite()) {
+            minOf(maxWidth, maxHeight)
+        } else {
+            maxWidth
+        }
 
-        // Render base full grid lines or overlapping box layers safely
+        Box(
+            modifier = Modifier
+                .size(boardSize)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .border(2.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            val cellSize = boardSize / size
+
+            // Render base full grid lines or overlapping box layers safely
         Column(modifier = Modifier.fillMaxSize()) {
             for (r in 0 until size) {
                 Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
@@ -195,6 +205,7 @@ fun SudokuGrid(
                     letterSpacing = 1.sp
                 )
             }
+        }
         }
     }
 }
