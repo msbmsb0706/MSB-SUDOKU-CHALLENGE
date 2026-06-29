@@ -25,7 +25,13 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # Bypassing local wrapper: Calling the global runner 'gradle' instead of './gradlew'
+      # This forces the global runner to use Gradle 8.7 instead of 9.6.0
+      - name: Setup Gradle Build Environment
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+          validate-wrappers: false
+
       - name: Run Quality Checks
         run: gradle lintDebug testDebugUnitTest --stacktrace
 
