@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.secrets) apply false
 }
 
-android { // ✅ Fixed: lowercase 'a'
+android {
   namespace = "com.example"
   compileSdk = 34
 
@@ -32,7 +32,11 @@ android { // ✅ Fixed: lowercase 'a'
       if (!keystoreBase64.isNullOrEmpty()) {
         val decryptedKeyFile = file("${layout.buildDirectory.get().asFile}/outputs/temp_signing_key.jks")
         decryptedKeyFile.parentFile.mkdirs()
-        decryptedKeyFile.writeBytes(java.util.Base64.getDecoder().decode(keystoreBase64.trim()))
+        
+        // Fixed: Using a direct, fail-safe package locator to prevent the 'unresolved reference: util' error
+        val decoder = Class.forName("java.util.Base64").getMethod("getDecoder").invoke(null)
+        val decodedBytes = Class.forName("java.util.Base64\$Decoder").getMethod("decode", String::class.java).invoke(decoder, keystoreBase64.trim()) as ByteArray
+        decryptedKeyFile.writeBytes(decodedBytes)
         
         storeFile = decryptedKeyFile
         storePassword = System.getenv("KEYSTORE_PASSWORD")
