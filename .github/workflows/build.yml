@@ -1,84 +1,67 @@
-name: Build APK
-
+Name: Build APK and AAB
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
-
 on:
-
   push:
-
     branches:
-
       - main
 
-
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
 
-
     steps:
-
       - name: Checkout source
-
         uses: actions/checkout@v4
 
-
       - name: Set up JDK 17
-
         uses: actions/setup-java@v4
-
         with:
-
           distribution: temurin
-
           java-version: 17
 
-
       - name: Setup Android SDK
-
         uses: android-actions/setup-android@v3
-
 
       - name: Make Gradle Wrapper Executable
         run: chmod +x gradlew
 
-
       - name: Setup Gradle
-
         uses: gradle/actions/setup-gradle@v4
-
         with:
-
           validate-wrappers: false
 
+      - name: Run Quality Checks
+        run: ./gradlew lintDebug testDebugUnitTest --stacktrace
 
-      - name: Run Quality Checks & Build APK
-
-        run: gradle lintDebug testDebugUnitTest assembleDebug --stacktrace
-
+      - name: Build Signed APK & AAB (Release)
+        run: ./gradlew assembleRelease bundleRelease --stacktrace
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
       - name: Upload Build Reports (Lint & Tests)
-
         uses: actions/upload-artifact@v4
-
         if: always()
-
         with:
-
           name: quality-reports
-
           path: |
             app/build/reports/lint-results-debug.html
             app/build/reports/lint-results-debug.xml
             app/build/reports/tests/testDebugUnitTest/
 
-
-      - name: Upload APK
+      - name: Upload Signed App Packages (APK & AAB)
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: MSB-Sudoku-Release-Packages
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
 
         uses: actions/upload-artifact@v4
 
