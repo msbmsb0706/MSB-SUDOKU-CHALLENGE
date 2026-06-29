@@ -14,6 +14,8 @@ import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -86,33 +88,124 @@ fun ControlPanel(
             )
         }
 
-        // Dynamic Input Keyboard Grid - compact scrollable horizontal bar supporting all displays!
+        // 1. Sleek, intuitive hand-gesture drag & swipe helper text banner
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                .padding(horizontal = 8.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            for (num in 1..gridSize) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f))
-                        .clickable { onNumberEntered(num) }
-                        .testTag("num_pad_$num"),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = num.toString(),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = if (gridSize == 4) 24.sp else 20.sp
-                    )
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = "Swipe Tip",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(13.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = "👉 Drag / Swipe horizontal bar to see all numbers or tap arrows 👈",
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // 2. Dynamic Input Keyboard Row with left/right quick scroll buttons & dynamic sizing
+        val scrollState = rememberScrollState()
+        val coroutineScope = rememberCoroutineScope()
+
+        val buttonSize = when (gridSize) {
+            9 -> 36.dp
+            4 -> 48.dp
+            else -> 42.dp
+        }
+        val buttonSpacing = when (gridSize) {
+            9 -> 5.dp
+            else -> 8.dp
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            // Left Quick Scroll Button
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable {
+                        coroutineScope.launch {
+                            scrollState.animateScrollTo(0)
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "◀",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            // Scrollable Keyboard keys in the middle
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .horizontalScroll(scrollState)
+                    .padding(vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(buttonSpacing, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                for (num in 1..gridSize) {
+                    Box(
+                        modifier = Modifier
+                            .size(buttonSize)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f))
+                            .clickable { onNumberEntered(num) }
+                            .testTag("num_pad_$num"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = num.toString(),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontWeight = FontWeight.Black,
+                            fontSize = if (gridSize == 9) 18.sp else 22.sp
+                        )
+                    }
                 }
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            // Right Quick Scroll Button
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable {
+                        coroutineScope.launch {
+                            scrollState.animateScrollTo(scrollState.maxValue)
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "▶",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 

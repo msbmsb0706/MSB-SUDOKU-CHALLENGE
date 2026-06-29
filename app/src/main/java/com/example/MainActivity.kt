@@ -1002,6 +1002,107 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                     )
                 }
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // App function & gesture guide card for new users as requested!
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f)
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("🎓", fontSize = 18.sp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "APP FUNCTIONS & GESTURE GUIDE",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(10.dp))
+                        
+                        Text(
+                            text = "Welcome! This app has been optimized for effortless play across all device sizes. Below is a quick guide on gestures & functions:",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
+                            lineHeight = 15.sp
+                        )
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        // Point 1: Swiping number bar
+                        Row(verticalAlignment = Alignment.Top) {
+                            Text("👉", fontSize = 12.sp, modifier = Modifier.padding(top = 1.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = "Swipe/Drag the Number Row",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Text(
+                                    text = "During classic 9x9 matches, if the number 9 (or others) is cut off on your screen, simply drag/slide the numbers bar horizontally. You can also tap the ◀ and ▶ buttons on the sides to scroll instantly!",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f),
+                                    lineHeight = 14.sp
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Point 2: Custom grids and locks
+                        Row(verticalAlignment = Alignment.Top) {
+                            Text("🔒", fontSize = 12.sp, modifier = Modifier.padding(top = 1.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = "Optimized Boards & Locks",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Text(
+                                    text = "Play 3x3, 4x4, or 9x9 games! Grid structures are locked firmly in place with edge-to-edge padding so they remain stable, comfortable to tap, and never move or cover your screen layout.",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f),
+                                    lineHeight = 14.sp
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Point 3: Tool functions
+                        Row(verticalAlignment = Alignment.Top) {
+                            Text("💡", fontSize = 12.sp, modifier = Modifier.padding(top = 1.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = "Notes, Erase, and Hint Actions",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Text(
+                                    text = "Tap a cell first, then choose an action. Toggle PENCIL mode to write small drafts inside cells, ERASE to clear errors, or use HINT (spending earned gems) to reveal a cell's correct number!",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f),
+                                    lineHeight = 14.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(14.dp))
 
                 OutlinedButton(
@@ -1044,25 +1145,20 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = if (isCompactHeight) Arrangement.spacedBy(8.dp) else Arrangement.SpaceBetween
                 ) {
-                // Info line: Timer, mistakes count, pause
-                Row(
+                // Sleek Two-Tier Info Header - compact, preventing any layout wrapping/squeezing!
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    // Left: Difficulty label + Withdraw/Exit button / Leave button if Tournament Active
-                    if (isTeamTournamentActive) {
-                        Button(
-                            onClick = { viewModel.leaveAndShowTournamentLeaderboard() },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                            modifier = Modifier.height(32.dp)
-                        ) {
-                            Text("LEAVE & SHOW LOBBY", fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                        }
-                    } else {
+                    // Row 1: Difficulty & Actions (Withdraw / Pause / Terms)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Left: Difficulty Level Capsule
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -1072,24 +1168,36 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
-                                    text = selectedDifficulty.label.uppercase(),
+                                    text = if (isTeamTournamentActive) "TEAM TOURNAMENT" else selectedDifficulty.label.uppercase(),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }
+                        }
 
-                            // High-impact WITHDRAW / EXIT option
+                        // Right: Controls Row
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            // WITHDRAW / LEAVE button
                             Button(
-                                onClick = { showWithdrawConfirmation = true },
+                                onClick = {
+                                    if (isTeamTournamentActive) {
+                                        viewModel.leaveAndShowTournamentLeaderboard()
+                                    } else {
+                                        showWithdrawConfirmation = true
+                                    }
+                                },
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.85f),
                                     contentColor = Color.White
                                 ),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                                 modifier = Modifier
-                                    .height(32.dp)
+                                    .height(28.dp)
                                     .testTag("forfeit_exit_btn")
                             ) {
                                 Icon(
@@ -1099,15 +1207,19 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("WITHDRAW", fontSize = 9.sp, fontWeight = FontWeight.Black)
+                                Text(
+                                    text = if (isTeamTournamentActive) "LEAVE" else "WITHDRAW",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black
+                                )
                             }
 
-                            Spacer(modifier = Modifier.width(4.dp))
+                            // Policy Info Button
                             IconButton(
                                 onClick = { viewModel.showTermsAndPolicy.value = true },
                                 modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .size(28.dp)
+                                    .clip(RoundedCornerShape(6.dp))
                                     .background(MaterialTheme.colorScheme.surfaceVariant)
                                     .testTag("board_terms_policy_btn")
                             ) {
@@ -1115,59 +1227,92 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
                                     imageVector = Icons.Default.Info,
                                     contentDescription = "Terms",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+
+                            // Pause Button
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable { viewModel.togglePause() }
+                                    .testTag("toggle_pause_btn"),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Menu,
+                                    contentDescription = "Play/Pause Icon",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(14.dp)
                                 )
                             }
                         }
                     }
 
-                    // Middle: Timer
-                    val mins = secondsElapsed / 60
-                    val secs = secondsElapsed % 60
-                    Text(
-                        text = if (gameMode == "Countdown") {
-                            String.format("TIME LEFT: %02d:%02d", mins, secs)
-                        } else {
-                            String.format("%02d:%02d", mins, secs)
-                        },
-                        style = MaterialTheme.typography.titleMedium,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        color = if (gameMode == "Countdown" && secondsElapsed < 30) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-                    )
-
-                    // Right: Mistake checkpoints and Pause button
+                    // Row 2: Mode, Timer, Mistakes Summary Status
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(8.dp)
+                        // Left: Active Mode indicator
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
+                            val modeIcon = when (gameMode) {
+                                "Practice" -> "🎮"
+                                "Survival" -> "⚠️"
+                                "Countdown" -> "⏱️"
+                                "Tournament" -> "🏆"
+                                else -> "🎲"
+                            }
                             Text(
-                                text = "MISTAKES: $mistakeCount/3",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                text = "$modeIcon ${gameMode.uppercase()}",
+                                fontSize = 9.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .clickable { viewModel.togglePause() }
-                                .testTag("toggle_pause_btn"),
-                            contentAlignment = Alignment.Center
+                        // Center: Chrono Timer
+                        val mins = secondsElapsed / 60
+                        val secs = secondsElapsed % 60
+                        val timerText = if (gameMode == "Countdown") {
+                            String.format("⏳ %02d:%02d", mins, secs)
+                        } else {
+                            String.format("⏱️ %02d:%02d", mins, secs)
+                        }
+                        Text(
+                            text = timerText,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            color = if (gameMode == "Countdown" && secondsElapsed < 30) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                        )
+
+                        // Right: Mistakes non-wrapping badge
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Icon(
-                                imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Menu,
-                                contentDescription = "Play/Pause Icon",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp)
+                            Text(
+                                text = "MISTAKES: ",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                text = "$mistakeCount/3",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black,
+                                color = if (mistakeCount >= 2) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                             )
                         }
                     }
