@@ -16,13 +16,6 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      # FIX: This now downloads a fresh jar file BEFORE any Gradle actions run
-      - name: Fix and Validate Gradle Wrapper Jar
-        run: |
-          mkdir -p gradle/wrapper
-          curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.7/gradle/wrapper/gradle-wrapper.jar
-          chmod +x gradlew
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -32,10 +25,13 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          validate-wrappers: false
+      # This replaces the corrupt wrapper and manually cleans the workspace cache
+      - name: Fix and Clean Gradle Wrapper
+        run: |
+          rm -f gradle/wrapper/gradle-wrapper.jar
+          mkdir -p gradle/wrapper
+          curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.7/gradle/wrapper/gradle-wrapper.jar
+          chmod +x gradlew
 
       - name: Run Quality Checks
         run: ./gradlew lintDebug testDebugUnitTest --stacktrace
