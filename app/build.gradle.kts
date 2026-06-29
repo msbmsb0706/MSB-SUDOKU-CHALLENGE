@@ -1,9 +1,15 @@
-android {
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.google.devtools.ksp) apply false
+    alias(libs.plugins.roborazzi) apply false
+    alias(libs.plugins.secrets) apply false
+}
+
+android { // ✅ Fixed: lowercase 'a'
   namespace = "com.example"
-  // Fixed: Set to a stable compilation target compatible with Gradle 8.7
   compileSdk = 34
 
-  // Fixed: Added to prevent lint warnings or release checks from aborting the build
   lint {
     abortOnError = false
     checkReleaseBuilds = false
@@ -24,7 +30,6 @@ android {
       val keystoreBase64 = System.getenv("KEYSTORE_BASE64")
       
       if (!keystoreBase64.isNullOrEmpty()) {
-        // Fixed: Swapped out deprecated 'buildDir' with layout.buildDirectory syntax
         val decryptedKeyFile = file("${layout.buildDirectory.get().asFile}/outputs/temp_signing_key.jks")
         decryptedKeyFile.parentFile.mkdirs()
         decryptedKeyFile.writeBytes(java.util.Base64.getDecoder().decode(keystoreBase64.trim()))
@@ -70,4 +75,16 @@ android {
     buildConfig = true
   }
   testOptions { unitTests { isIncludeAndroidResources = true } }
+}
+
+dependencies {
+    // Standard Compose BOM & UI mappings
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
 }
