@@ -33,8 +33,8 @@ android {
         val decryptedKeyFile = file("${layout.buildDirectory.get().asFile}/outputs/temp_signing_key.jks")
         decryptedKeyFile.parentFile.mkdirs()
         
-        // Fixed: Automatically filters out dashes, spaces, newlines, and PEM header/footer blocks
-        val sanitizedBase64 = rawKeystoreBase64
+        // Step 1: Strip structural text lines, headers, and spacing configurations
+        var sanitizedBase64 = rawKeystoreBase64
             .replace("-", "")
             .replace("BEGIN EXTERNAL KEY", "")
             .replace("END EXTERNAL KEY", "")
@@ -43,7 +43,13 @@ android {
             .replace("\\s".toRegex(), "")
             .trim()
 
-        val decoder = Class.forName("java.util.Base64").getMethod("getDecoder").invoke(null)
+        // Step 2: Auto-realign string groupings structurally to multiples of 4 bytes
+        while (sanitizedBase64.length % 4 != 0) {
+            sanitizedBase64 += "="
+        }
+
+        // Step 3: Parse utilizing a flexible MimeDecoder instance to bypass incorrect trailing bits
+        val decoder = Class.forName("java.util.Base64").getMethod("getMimeDecoder").invoke(null)
         val decodedBytes = Class.forName("java.util.Base64\$Decoder").getMethod("decode", String::class.java).invoke(decoder, sanitizedBase64) as ByteArray
         decryptedKeyFile.writeBytes(decodedBytes)
         
