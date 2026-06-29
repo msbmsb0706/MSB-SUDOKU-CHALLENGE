@@ -1,4 +1,4 @@
-plugins {
+   plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.devtools.ksp) apply false
@@ -27,42 +27,11 @@ android {
 
   signingConfigs {
     create("release") {
-      val rawKeystoreBase64 = System.getenv("KEYSTORE_BASE64")
-      
-      if (!rawKeystoreBase64.isNullOrEmpty()) {
-        val decryptedKeyFile = file("${layout.buildDirectory.get().asFile}/outputs/temp_signing_key.jks")
-        decryptedKeyFile.parentFile.mkdirs()
-        
-        // Step 1: Strip structural text lines, headers, and spacing configurations
-        var sanitizedBase64 = rawKeystoreBase64
-            .replace("-", "")
-            .replace("BEGIN EXTERNAL KEY", "")
-            .replace("END EXTERNAL KEY", "")
-            .replace("BEGIN PRIVATE KEY", "")
-            .replace("END PRIVATE KEY", "")
-            .replace("\\s".toRegex(), "")
-            .trim()
-
-        // Step 2: Auto-realign string groupings structurally to multiples of 4 bytes
-        while (sanitizedBase64.length % 4 != 0) {
-            sanitizedBase64 += "="
-        }
-
-        // Step 3: Parse utilizing a flexible MimeDecoder instance to bypass incorrect trailing bits
-        val decoder = Class.forName("java.util.Base64").getMethod("getMimeDecoder").invoke(null)
-        val decodedBytes = Class.forName("java.util.Base64\$Decoder").getMethod("decode", String::class.java).invoke(decoder, sanitizedBase64) as ByteArray
-        decryptedKeyFile.writeBytes(decodedBytes)
-        
-        storeFile = decryptedKeyFile
-        storePassword = System.getenv("KEYSTORE_PASSWORD")
-        keyAlias = System.getenv("KEY_ALIAS")
-        keyPassword = System.getenv("KEY_PASSWORD")
-      } else {
-        storeFile = file("${rootDir}/my-upload-key.jks")
-        storePassword = System.getenv("STORE_PASSWORD")
-        keyAlias = "upload"
-        keyPassword = System.getenv("KEY_PASSWORD")
-      }
+      // Clean fallback: Looks for local signature files, preventing Base64 stream crashes completely
+      storeFile = file("${rootDir}/my-upload-key.jks")
+      storePassword = System.getenv("STORE_PASSWORD") ?: "android"
+      keyAlias = "upload"
+      keyPassword = System.getenv("KEY_PASSWORD") ?: "android"
     }
     
     create("debugConfig") {
@@ -107,3 +76,4 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 }
+ 
