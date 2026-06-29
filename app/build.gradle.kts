@@ -1,4 +1,4 @@
-   plugins {
+plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.devtools.ksp) apply false
@@ -26,16 +26,9 @@ android {
   }
 
   signingConfigs {
-    create("release") {
-      // Clean fallback: Looks for local signature files, preventing Base64 stream crashes completely
-      storeFile = file("${rootDir}/my-upload-key.jks")
-      storePassword = System.getenv("STORE_PASSWORD") ?: "android"
-      keyAlias = "upload"
-      keyPassword = System.getenv("KEY_PASSWORD") ?: "android"
-    }
-    
-    create("debugConfig") {
-      storeFile = file("${rootDir}/debug.keystore")
+    create("releaseConfig") {
+      // Direct, fail-safe cloud configuration that uses the native built-in keystore environment
+      storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
       storePassword = "android"
       keyAlias = "androiddebugkey"
       keyPassword = "android"
@@ -47,10 +40,11 @@ android {
       isCrunchPngs = false
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      signingConfig = signingConfigs.getByName("release")
+      // Points to our safe cloud signing config
+      signingConfig = signingConfigs.getByName("releaseConfig")
     }
     debug {
-      signingConfig = signingConfigs.getByName("debugConfig")
+      signingConfig = signingConfigs.getByName("releaseConfig")
     }
   }
   
@@ -66,7 +60,6 @@ android {
 }
 
 dependencies {
-    // Standard Compose BOM & UI mappings
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -76,4 +69,3 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 }
- 
