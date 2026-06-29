@@ -1,7 +1,7 @@
 android {
   namespace = "com.example"
-  // Fixed: Restored your exact release 36 minor API configuration block
-  compileSdk { version = release(36) { minorApiLevel = 1 } }
+  // Fixed: Set to a stable compilation target compatible with Gradle 8.7
+  compileSdk = 34
 
   defaultConfig {
     applicationId = "com.example.sudoku"
@@ -18,7 +18,8 @@ android {
       val keystoreBase64 = System.getenv("KEYSTORE_BASE64")
       
       if (!keystoreBase64.isNullOrEmpty()) {
-        val decryptedKeyFile = file("${buildDir}/outputs/temp_signing_key.jks")
+        // Fixed: Swapped out the broken 'buildDir' property with layout.buildDirectory syntax
+        val decryptedKeyFile = file("${layout.buildDirectory.get().asFile}/outputs/temp_signing_key.jks")
         decryptedKeyFile.parentFile.mkdirs()
         decryptedKeyFile.writeBytes(java.util.Base64.getDecoder().decode(keystoreBase64.trim()))
         
