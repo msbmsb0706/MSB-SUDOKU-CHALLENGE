@@ -1,4 +1,4 @@
-pluginManagement {
+pluginManagement { // ✅ Fixed: lowercase 'p'
   repositories {
     google {
       content {
