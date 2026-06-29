@@ -27,15 +27,24 @@ android {
 
   signingConfigs {
     create("release") {
-      val keystoreBase64 = System.getenv("KEYSTORE_BASE64")
+      val rawKeystoreBase64 = System.getenv("KEYSTORE_BASE64")
       
-      if (!keystoreBase64.isNullOrEmpty()) {
+      if (!rawKeystoreBase64.isNullOrEmpty()) {
         val decryptedKeyFile = file("${layout.buildDirectory.get().asFile}/outputs/temp_signing_key.jks")
         decryptedKeyFile.parentFile.mkdirs()
         
-        // Fixed: Using a direct, fail-safe package locator to prevent the 'unresolved reference: util' error
+        // Fixed: Automatically filters out dashes, spaces, newlines, and PEM header/footer blocks
+        val sanitizedBase64 = rawKeystoreBase64
+            .replace("-", "")
+            .replace("BEGIN EXTERNAL KEY", "")
+            .replace("END EXTERNAL KEY", "")
+            .replace("BEGIN PRIVATE KEY", "")
+            .replace("END PRIVATE KEY", "")
+            .replace("\\s".toRegex(), "")
+            .trim()
+
         val decoder = Class.forName("java.util.Base64").getMethod("getDecoder").invoke(null)
-        val decodedBytes = Class.forName("java.util.Base64\$Decoder").getMethod("decode", String::class.java).invoke(decoder, keystoreBase64.trim()) as ByteArray
+        val decodedBytes = Class.forName("java.util.Base64\$Decoder").getMethod("decode", String::class.java).invoke(decoder, sanitizedBase64) as ByteArray
         decryptedKeyFile.writeBytes(decodedBytes)
         
         storeFile = decryptedKeyFile
