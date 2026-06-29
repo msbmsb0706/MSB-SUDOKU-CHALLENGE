@@ -32,6 +32,10 @@ jobs:
           gradle-version: '8.7'
           validate-wrappers: false
 
+      # Fixes permission issues for downloaded/extracted project repositories
+      - name: Grant Execute Permissions to Gradle
+        run: chmod +x lint || true
+
       # Bypassing cache constraints, lint, and tests to guarantee a successful compile
       - name: Build Signed APK & AAB (Release)
         run: gradle assembleRelease bundleRelease -x lint -x test --no-configuration-cache --stacktrace
@@ -49,4 +53,3 @@ jobs:
           path: |
             app/build/outputs/apk/release/*.apk
             app/build/outputs/bundle/release/*.aab
-          path: app/build/outputs/bundle/debug/app-debug.aab
