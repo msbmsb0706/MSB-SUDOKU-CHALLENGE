@@ -25,10 +25,10 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # This replaces the corrupt wrapper and manually cleans the workspace cache
-      - name: Fix and Clean Gradle Wrapper
+      # This completely clears out the corrupt directory and installs a fresh copy
+      - name: Purge Corrupt Wrapper & Rebuild
         run: |
-          rm -f gradle/wrapper/gradle-wrapper.jar
+          rm -rf gradle/wrapper/gradle-wrapper.jar
           mkdir -p gradle/wrapper
           curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.7/gradle/wrapper/gradle-wrapper.jar
           chmod +x gradlew
