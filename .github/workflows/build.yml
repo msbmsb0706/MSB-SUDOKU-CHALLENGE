@@ -25,19 +25,12 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # This completely clears out the corrupt directory and installs a fresh copy
-      - name: Purge Corrupt Wrapper & Rebuild
-        run: |
-          rm -rf gradle/wrapper/gradle-wrapper.jar
-          mkdir -p gradle/wrapper
-          curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.7/gradle/wrapper/gradle-wrapper.jar
-          chmod +x gradlew
-
+      # Bypassing local wrapper: Calling the global runner 'gradle' instead of './gradlew'
       - name: Run Quality Checks
-        run: ./gradlew lintDebug testDebugUnitTest --stacktrace
+        run: gradle lintDebug testDebugUnitTest --stacktrace
 
       - name: Build Signed APK & AAB (Release)
-        run: ./gradlew assembleRelease bundleRelease --stacktrace
+        run: gradle assembleRelease bundleRelease --stacktrace
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
