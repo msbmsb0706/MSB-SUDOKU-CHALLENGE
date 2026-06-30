@@ -7,7 +7,8 @@ plugins {
 }
 
 android {
-  namespace = "com.example"
+  // ✅ Branded Namespace matching MSB Creative Studios
+  namespace = "com.msbcreativestudios.sudokuchallenge"
   compileSdk = 34
 
   lint {
@@ -16,7 +17,8 @@ android {
   }
 
   defaultConfig {
-    applicationId = "com.example.sudoku"
+    // ✅ Branded Application ID tracking for Android systems
+    applicationId = "com.msbcreativestudios.sudokuchallenge"
     minSdk = 28
     targetSdk = 34
     versionCode = 1
@@ -25,29 +27,12 @@ android {
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
-  signingConfigs {
-    create("release") {
-      // Points exactly to the path where the GitHub Runner writes the file
-      val keystoreFile = file("${rootDir}/app/keystore/release.jks")
-      
-      if (keystoreFile.exists() && !System.getenv("KEYSTORE_PASSWORD").isNullOrEmpty()) {
-        storeFile = keystoreFile
-        storePassword = System.getenv("KEYSTORE_PASSWORD")
-        keyAlias = System.getenv("KEY_ALIAS")
-        keyPassword = System.getenv("KEY_PASSWORD")
-      } else {
-        // Safe internal fallback: If the file generation fails due to dashes, use the default runner config
-        signingConfig = signingConfigs.getByName("debug")
-      }
-    }
-  }
-
   buildTypes {
     release {
       isCrunchPngs = false
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      signingConfig = signingConfigs.getByName("release")
+      signingConfig = signingConfigs.getByName("debug")
     }
     debug {
       signingConfig = signingConfigs.getByName("debug")
@@ -66,12 +51,16 @@ android {
 }
 
 dependencies {
+    // Stable baseline dependencies matching our layout runtime engine configuration
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.navigation.compose)
 }
