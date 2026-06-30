@@ -33,12 +33,11 @@ jobs:
           gradle-version: '8.7'
           validate-wrappers: false
 
-      # ✅ Overwrites the placeholder text with your real GitHub secret key string
+      # ✅ Safe: Writes to local.properties directly without breaking on special characters
       - name: Inject Google AI Studio API Key Safely
         run: |
           echo "apiKey=${{ secrets.GEMINI_API_KEY }}" >> local.properties
           echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> local.properties
-          find . -type f \( -name "*.properties" -o -name "*.kt" -o -name "*.xml" -o -name "*.txt" \) -exec sed -i 's/MY_GEMINI_API_KEY/${{ secrets.GEMINI_API_KEY }}/g' {} +
 
       - name: Create release keystore automatically
         run: |
@@ -52,8 +51,11 @@ jobs:
             -validity 10000 \
             -dname "CN=MSB Creative Studios, O=MSB Creative Studios, L=Chennai, C=IN"
 
+      # ✅ Feeds the key to the compiler as an operational environment property mapping
       - name: Build Code Packages
         run: gradle assembleRelease bundleRelease -x lint -x test --no-configuration-cache --stacktrace
+        env:
+          MY_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: Consolidate Deliverables
         run: |
