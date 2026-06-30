@@ -32,15 +32,19 @@ jobs:
           gradle-version: '8.7'
           validate-wrappers: false
 
-      # Fixes permission issues for downloaded/extracted project repositories
       - name: Grant Execute Permissions to Gradle
         run: chmod +x lint || true
 
-      # Bypassing cache constraints, lint, and tests to guarantee a successful compile
+      # This step takes your GitHub secret, turns it back into a physical .jks file on the runner safely
+      - name: Decrypt Keystore File
+        run: |
+          mkdir -p app/keystore
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/keystore/release.jks
+        if: "${{ secrets.KEYSTORE_BASE64 != '' }}"
+
       - name: Build Signed APK & AAB (Release)
         run: gradle assembleRelease bundleRelease -x lint -x test --no-configuration-cache --stacktrace
         env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
