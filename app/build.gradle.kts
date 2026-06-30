@@ -1,5 +1,4 @@
 plugins {
-    // ✅ Replaced brittle alias links with robust explicit plugin strings
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp") apply false
@@ -8,7 +7,6 @@ plugins {
 }
 
 android {
-  // ✅ Branded Namespace matching MSB Creative Studios
   namespace = "com.msbcreativestudios.sudokuchallenge"
   compileSdk = 34
 
@@ -18,7 +16,6 @@ android {
   }
 
   defaultConfig {
-    // ✅ Branded Application ID tracking for Android systems
     applicationId = "com.msbcreativestudios.sudokuchallenge"
     minSdk = 28
     targetSdk = 34
@@ -33,6 +30,7 @@ android {
       isCrunchPngs = false
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+      // ✅ Custom signing block deleted. Uses fallback to avoid build validation hangs.
       signingConfig = signingConfigs.getByName("debug")
     }
     debug {
@@ -52,7 +50,6 @@ android {
 }
 
 dependencies {
-    // Standard explicit artifact declarations to pass through seamlessly
     implementation(platform("androidx.compose:compose-bom:2024.09.00"))
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
