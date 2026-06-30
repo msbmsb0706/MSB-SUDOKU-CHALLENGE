@@ -55,7 +55,7 @@ jobs:
         env:
           MY_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
-      # ✅ Signs with BOTH v1 and v2 signature layers so it opens perfectly on Android 9 through Android 12+
+      # Signs with BOTH v1 and v2 signature layers for full Android 9 to Android 12+ compatibility
       - name: Sign Release APK for Android 9 and Modern Devices
         run: |
           UNSIGNED_APK=$(find app/build/outputs/apk/release/ -name "*.apk" | head -n 1)
@@ -70,16 +70,10 @@ jobs:
             --out app/build/outputs/apk/release/MSB-Sudoku-Challenge-Signed.apk \
             "$UNSIGNED_APK"
 
-      # Verifies the package signature formats to ensure it passes all device verification layers
       - name: Verify Signed APK Package
         run: |
           BUILD_TOOLS_DIR=$(ls -d ${ANDROID_HOME}/build-tools/* | tail -n 1)
           $BUILD_TOOLS_DIR/apksigner verify --verbose app/build/outputs/apk/release/MSB-Sudoku-Challenge-Signed.apk
-
-      <div align="center">
-      </div>
-
-      <br>
 
       - name: Consolidate Deliverables
         run: |
