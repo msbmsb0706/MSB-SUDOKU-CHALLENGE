@@ -25,26 +25,18 @@ android {
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
-  signingConfigs {
-    create("releaseConfig") {
-      // Direct, fail-safe cloud configuration that uses the native built-in keystore environment
-      storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
-      storePassword = "android"
-      keyAlias = "androiddebugkey"
-      keyPassword = "android"
-    }
-  }
-
   buildTypes {
     release {
       isCrunchPngs = false
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      // Points to our safe cloud signing config
-      signingConfig = signingConfigs.getByName("releaseConfig")
+      
+      // Forces the build engine to use the default debug signing setup natively
+      // This completely eliminates the missing file validation crash on cloud instances
+      signingConfig = signingConfigs.getByName("debug")
     }
     debug {
-      signingConfig = signingConfigs.getByName("releaseConfig")
+      signingConfig = signingConfigs.getByName("debug")
     }
   }
   
