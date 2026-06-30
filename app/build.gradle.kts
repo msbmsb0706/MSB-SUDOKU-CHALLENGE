@@ -1,12 +1,14 @@
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.google.devtools.ksp) apply false
-    alias(libs.plugins.roborazzi) apply false
-    alias(libs.plugins.secrets) apply false
+    // ✅ Replaced brittle alias links with robust explicit plugin strings
+    id("com.android.application")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp") apply false
+    id("io.github.takahirom.roborazzi") apply false
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin") apply false
 }
 
 android {
+  // ✅ Branded Namespace matching MSB Creative Studios
   namespace = "com.msbcreativestudios.sudokuchallenge"
   compileSdk = 34
 
@@ -16,6 +18,7 @@ android {
   }
 
   defaultConfig {
+    // ✅ Branded Application ID tracking for Android systems
     applicationId = "com.msbcreativestudios.sudokuchallenge"
     minSdk = 28
     targetSdk = 34
@@ -49,15 +52,16 @@ android {
 }
 
 dependencies {
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.navigation.compose)
+    // Standard explicit artifact declarations to pass through seamlessly
+    implementation(platform("androidx.compose:compose-bom:2024.09.00"))
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.navigation:navigation-compose:2.8.3")
 }
