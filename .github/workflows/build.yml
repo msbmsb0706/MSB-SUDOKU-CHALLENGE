@@ -33,6 +33,13 @@ jobs:
           gradle-version: '8.7'
           validate-wrappers: false
 
+      # ✅ Overwrites the placeholder text with your real GitHub secret key string
+      - name: Inject Google AI Studio API Key Safely
+        run: |
+          echo "apiKey=${{ secrets.GEMINI_API_KEY }}" >> local.properties
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> local.properties
+          find . -type f \( -name "*.properties" -o -name "*.kt" -o -name "*.xml" -o -name "*.txt" \) -exec sed -i 's/MY_GEMINI_API_KEY/${{ secrets.GEMINI_API_KEY }}/g' {} +
+
       - name: Create release keystore automatically
         run: |
           keytool -genkeypair -v \
@@ -45,16 +52,13 @@ jobs:
             -validity 10000 \
             -dname "CN=MSB Creative Studios, O=MSB Creative Studios, L=Chennai, C=IN"
 
-      # Runs the compiler tasks cleanly without strict verification block interruptions
       - name: Build Code Packages
         run: gradle assembleRelease bundleRelease -x lint -x test --no-configuration-cache --stacktrace
 
-      # Copies the newly created keystore directly into the build output folder before zipping
       - name: Consolidate Deliverables
         run: |
           cp my-upload-key.jks app/build/outputs/apk/release/
 
-      # ✅ Packages APK, AAB, and the Keystore file inside ONE SINGLE download zip
       - name: Upload Complete Studio Package
         uses: actions/upload-artifact@v4
         with:
