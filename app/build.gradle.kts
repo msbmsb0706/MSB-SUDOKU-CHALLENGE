@@ -7,7 +7,6 @@ plugins {
 }
 
 android {
-  // ✅ Branded Namespace matching MSB Creative Studios
   namespace = "com.msbcreativestudios.sudokuchallenge"
   compileSdk = 34
 
@@ -17,7 +16,6 @@ android {
   }
 
   defaultConfig {
-    // ✅ Branded Application ID tracking for Android systems
     applicationId = "com.msbcreativestudios.sudokuchallenge"
     minSdk = 28
     targetSdk = 34
