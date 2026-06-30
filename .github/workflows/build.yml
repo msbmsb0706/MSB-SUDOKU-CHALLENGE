@@ -1,7 +1,4 @@
-name: Build APK and AAB
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+name: Build MSB Sudoku Deliverables
 
 on:
   push:
@@ -12,6 +9,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      STORE_PASSWORD: android123
+      KEY_PASSWORD: android123
+      KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
 
     steps:
       - name: Checkout source
@@ -32,33 +33,33 @@ jobs:
           gradle-version: '8.7'
           validate-wrappers: false
 
-      - name: Grant Execute Permissions to Gradle
-        run: chmod +x lint || true
-
-      # Robust decoder: Sanitizes formatting artifacts before unpacking the binary key
-      - name: Decrypt Keystore File Safely
+      - name: Create release keystore automatically
         run: |
-          mkdir -p app/keystore
-          CLEAN_BASE64=$(echo "${{ secrets.KEYSTORE_BASE64 }}" | tr -d '\r\n ' | sed 's/-*BEGIN.*-*//g' | sed 's/-*END.*-*//g')
-          if [ -z "$CLEAN_BASE64" ]; then
-            echo "Warning: KEYSTORE_BASE64 secret is empty. Falling back to debug mode."
-          else
-            echo "$CLEAN_BASE64" | base64 --decode > app/keystore/release.jks
-          fi
-        shell: bash
+          keytool -genkeypair -v \
+            -keystore "$KEYSTORE_PATH" \
+            -storepass "$STORE_PASSWORD" \
+            -keypass "$KEY_PASSWORD" \
+            -alias upload \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=MSB Creative Studios, O=MSB Creative Studios, L=Chennai, C=IN"
 
-      - name: Build Signed APK & AAB (Release)
+      # Runs the compiler tasks cleanly without strict verification block interruptions
+      - name: Build Code Packages
         run: gradle assembleRelease bundleRelease -x lint -x test --no-configuration-cache --stacktrace
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      - name: Upload Signed App Packages (APK & AAB)
+      # Copies the newly created keystore directly into the build output folder before zipping
+      - name: Consolidate Deliverables
+        run: |
+          cp my-upload-key.jks app/build/outputs/apk/release/
+
+      # ✅ Packages APK, AAB, and the Keystore file inside ONE SINGLE download zip
+      - name: Upload Complete Studio Package
         uses: actions/upload-artifact@v4
-        if: success()
         with:
-          name: MSB-Sudoku-Release-Packages
+          name: MSB-SUDOKU-COMPLETE-PACKAGE
           path: |
             app/build/outputs/apk/release/*.apk
             app/build/outputs/bundle/release/*.aab
+            app/build/outputs/apk/release/my-upload-key.jks
