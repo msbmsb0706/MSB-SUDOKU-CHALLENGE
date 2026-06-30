@@ -35,12 +35,17 @@ jobs:
       - name: Grant Execute Permissions to Gradle
         run: chmod +x lint || true
 
-      # This step takes your GitHub secret, turns it back into a physical .jks file on the runner safely
-      - name: Decrypt Keystore File
+      # Robust decoder: Sanitizes formatting artifacts before unpacking the binary key
+      - name: Decrypt Keystore File Safely
         run: |
           mkdir -p app/keystore
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/keystore/release.jks
-        if: "${{ secrets.KEYSTORE_BASE64 != '' }}"
+          CLEAN_BASE64=$(echo "${{ secrets.KEYSTORE_BASE64 }}" | tr -d '\r\n ' | sed 's/-*BEGIN.*-*//g' | sed 's/-*END.*-*//g')
+          if [ -z "$CLEAN_BASE64" ]; then
+            echo "Warning: KEYSTORE_BASE64 secret is empty. Falling back to debug mode."
+          else
+            echo "$CLEAN_BASE64" | base64 --decode > app/keystore/release.jks
+          fi
+        shell: bash
 
       - name: Build Signed APK & AAB (Release)
         run: gradle assembleRelease bundleRelease -x lint -x test --no-configuration-cache --stacktrace
