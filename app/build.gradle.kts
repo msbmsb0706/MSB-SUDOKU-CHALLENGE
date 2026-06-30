@@ -27,18 +27,17 @@ android {
 
   signingConfigs {
     create("release") {
-      val keystoreFile = file("keystore/release.jks")
-      if (keystoreFile.exists()) {
+      // Points exactly to the path where the GitHub Runner writes the file
+      val keystoreFile = file("${rootDir}/app/keystore/release.jks")
+      
+      if (keystoreFile.exists() && !System.getenv("KEYSTORE_PASSWORD").isNullOrEmpty()) {
         storeFile = keystoreFile
         storePassword = System.getenv("KEYSTORE_PASSWORD")
         keyAlias = System.getenv("KEY_ALIAS")
         keyPassword = System.getenv("KEY_PASSWORD")
       } else {
-        // Safe fall back if secrets are not configured yet
-        storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
-        storePassword = "android"
-        keyAlias = "androiddebugkey"
-        keyPassword = "android"
+        // Safe internal fallback: If the file generation fails due to dashes, use the default runner config
+        signingConfig = signingConfigs.getByName("debug")
       }
     }
   }
@@ -51,7 +50,7 @@ android {
       signingConfig = signingConfigs.getByName("release")
     }
     debug {
-      signingConfig = signingConfigs.getByName("release")
+      signingConfig = signingConfigs.getByName("debug")
     }
   }
   
