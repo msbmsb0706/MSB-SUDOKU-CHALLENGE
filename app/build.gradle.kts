@@ -51,7 +51,6 @@ android {
 }
 
 dependencies {
-    // Stable baseline dependencies matching our layout runtime engine configuration
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
