@@ -33,7 +33,6 @@ jobs:
           gradle-version: '8.7'
           validate-wrappers: false
 
-      # ✅ Safe: Writes to local.properties directly without breaking on special characters
       - name: Inject Google AI Studio API Key Safely
         run: |
           echo "apiKey=${{ secrets.GEMINI_API_KEY }}" >> local.properties
@@ -51,11 +50,36 @@ jobs:
             -validity 10000 \
             -dname "CN=MSB Creative Studios, O=MSB Creative Studios, L=Chennai, C=IN"
 
-      # ✅ Feeds the key to the compiler as an operational environment property mapping
       - name: Build Code Packages
         run: gradle assembleRelease bundleRelease -x lint -x test --no-configuration-cache --stacktrace
         env:
           MY_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      # ✅ Signs with BOTH v1 and v2 signature layers so it opens perfectly on Android 9 through Android 12+
+      - name: Sign Release APK for Android 9 and Modern Devices
+        run: |
+          UNSIGNED_APK=$(find app/build/outputs/apk/release/ -name "*.apk" | head -n 1)
+          BUILD_TOOLS_DIR=$(ls -d ${ANDROID_HOME}/build-tools/* | tail -n 1)
+          
+          $BUILD_TOOLS_DIR/apksigner sign --ks "$KEYSTORE_PATH" \
+            --ks-pass pass:"$STORE_PASSWORD" \
+            --key-pass pass:"$KEY_PASSWORD" \
+            --ks-key-alias upload \
+            --v1-signing-enabled true \
+            --v2-signing-enabled true \
+            --out app/build/outputs/apk/release/MSB-Sudoku-Challenge-Signed.apk \
+            "$UNSIGNED_APK"
+
+      # Verifies the package signature formats to ensure it passes all device verification layers
+      - name: Verify Signed APK Package
+        run: |
+          BUILD_TOOLS_DIR=$(ls -d ${ANDROID_HOME}/build-tools/* | tail -n 1)
+          $BUILD_TOOLS_DIR/apksigner verify --verbose app/build/outputs/apk/release/MSB-Sudoku-Challenge-Signed.apk
+
+      <div align="center">
+      </div>
+
+      <br>
 
       - name: Consolidate Deliverables
         run: |
@@ -66,6 +90,6 @@ jobs:
         with:
           name: MSB-SUDOKU-COMPLETE-PACKAGE
           path: |
-            app/build/outputs/apk/release/*.apk
+            app/build/outputs/apk/release/MSB-Sudoku-Challenge-Signed.apk
             app/build/outputs/bundle/release/*.aab
             app/build/outputs/apk/release/my-upload-key.jks
