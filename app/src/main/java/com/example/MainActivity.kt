@@ -2273,6 +2273,10 @@ fun WinningCertificateOverlay(
     onClose: () -> Unit
 ) {
     val context = LocalContext.current
+    val localPrefs = remember(context) { context.getSharedPreferences("msb_sudoku_prefs", android.content.Context.MODE_PRIVATE) }
+    val customKey = remember(localPrefs) { localPrefs.getString("custom_gemini_api_key", "") ?: "" }
+    val activeApiKey = if (customKey.isNotBlank()) customKey else BuildConfig.GEMINI_API_KEY
+
     val coroutineScope = rememberCoroutineScope()
     var isSaving by remember { mutableStateOf(false) }
     var isSavingPdf by remember { mutableStateOf(false) }
@@ -2393,7 +2397,7 @@ fun WinningCertificateOverlay(
         endorsementStatus = "Querying live Cognitive AI audit..."
         try {
             val response = com.example.data.GeminiClient.getCertificateEndorsement(
-                apiKey = BuildConfig.GEMINI_API_KEY,
+                apiKey = activeApiKey,
                 userName = localNameInput,
                 gridSize = currentTemplate.gridSize,
                 difficulty = currentTemplate.difficulty,
@@ -2806,7 +2810,7 @@ fun WinningCertificateOverlay(
                                     coroutineScope.launch {
                                         try {
                                             val response = com.example.data.GeminiClient.getCertificateEndorsement(
-                                                apiKey = BuildConfig.GEMINI_API_KEY,
+                                                apiKey = activeApiKey,
                                                 userName = localNameInput,
                                                 gridSize = currentTemplate.gridSize,
                                                 difficulty = currentTemplate.difficulty,

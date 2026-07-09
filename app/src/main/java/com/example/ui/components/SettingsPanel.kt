@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import kotlinx.coroutines.launch
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -937,6 +938,147 @@ fun SettingsPanel(
                             uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                         ),
                         modifier = Modifier.testTag("biometric_face_lock_toggle")
+                    )
+                }
+            }
+        }
+
+        // --- Custom Gemini API Key configuration for Zero Cost play ---
+        val panelContext = LocalContext.current
+        val prefs = remember(panelContext) { panelContext.getSharedPreferences("msb_sudoku_prefs", android.content.Context.MODE_PRIVATE) }
+        var customApiKeyInput by remember { mutableStateOf(prefs.getString("custom_gemini_api_key", "") ?: "") }
+        var isTestingKey by remember { mutableStateOf(false) }
+        var keyTestResult by remember { mutableStateOf<String?>(null) }
+        val coroutineScope = rememberCoroutineScope()
+
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🔑", fontSize = 18.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Cognitive AI Keys (Zero Cost Play)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Text(
+                    text = "This app uses Google Gemini AI for advanced statistics, cognitive analysis, and custom certificate endorsements. To play completely free and avoid limit caps, paste your own free Gemini API key below. It will be stored safely only on your device.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                OutlinedTextField(
+                    value = customApiKeyInput,
+                    onValueChange = { customApiKeyInput = it },
+                    label = { Text("Your Gemini API Key") },
+                    placeholder = { Text("AIzaSy...") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("custom_gemini_api_key_field"),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
+                    )
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            prefs.edit().putString("custom_gemini_api_key", customApiKeyInput.trim()).apply()
+                            keyTestResult = "API Key saved successfully! 🟢"
+                        },
+                        modifier = Modifier.weight(1f).testTag("save_api_key_btn"),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text("SAVE KEY", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            customApiKeyInput = ""
+                            prefs.edit().putString("custom_gemini_api_key", "").apply()
+                            keyTestResult = "API Key cleared. Using default system key."
+                        },
+                        modifier = Modifier.weight(1f).testTag("clear_api_key_btn")
+                    ) {
+                        Text("CLEAR KEY", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    }
+                }
+
+                // Help link or explanation of how to get one
+                Text(
+                    text = "Don't have a key? You can get a free API key with generous free quotas instantly at makersuite.google.com or ai.google.dev",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable {
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://ai.google.dev"))
+                            panelContext.startActivity(intent)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                )
+
+                if (customApiKeyInput.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Button(
+                        onClick = {
+                            isTestingKey = true
+                            keyTestResult = "Testing API connection with Gemini..."
+                            coroutineScope.launch {
+                                try {
+                                    val res = com.example.data.GeminiClient.getSudokuAnalysis(
+                                        apiKey = customApiKeyInput.trim(),
+                                        statsPrompt = "Generate a very short 4-word greeting to a Sudoku champion.",
+                                        localFallbackReport = "CONNECTION_FAILED"
+                                    )
+                                    if (res == "CONNECTION_FAILED" || res.isBlank()) {
+                                        keyTestResult = "Connection test failed. Verify key validity/internet connection."
+                                    } else {
+                                        keyTestResult = "Success! Gemini responded: \"$res\" ✨"
+                                    }
+                                } catch (e: Exception) {
+                                    keyTestResult = "Error checking key: ${e.message}"
+                                } finally {
+                                    isTestingKey = false
+                                }
+                            }
+                        },
+                        enabled = !isTestingKey,
+                        modifier = Modifier.fillMaxWidth().testTag("test_api_key_btn"),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
+                    ) {
+                        if (isTestingKey) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.onSecondaryContainer, strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("TESTING...", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        } else {
+                            Text("TEST KEY CONNECTION", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        }
+                    }
+                }
+
+                keyTestResult?.let { msg ->
+                    Text(
+                        text = msg,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (msg.contains("Success") || msg.contains("saved")) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }

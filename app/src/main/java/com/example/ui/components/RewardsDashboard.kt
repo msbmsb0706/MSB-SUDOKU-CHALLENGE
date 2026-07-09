@@ -836,6 +836,218 @@ fun RewardsDashboard(
                     }
                 }
 
+                item {
+                    val localPrefs = remember(context) { context.getSharedPreferences("msb_sudoku_prefs", android.content.Context.MODE_PRIVATE) }
+                    var selectedRecordGridSize by remember { mutableStateOf(9) }
+
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp)
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                                RoundedCornerShape(20.dp)
+                            )
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text("🏆", fontSize = 20.sp)
+                                    Column {
+                                        Text(
+                                            text = "SECTION ELITE RECORDS",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Black,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            letterSpacing = 1.sp
+                                        )
+                                        Text(
+                                            text = "Upgraded only • Never deleted",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                }
+
+                                // Quick reset indicator or info
+                                Text(
+                                    text = "SECURE 🟢",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF4CAF50),
+                                    modifier = Modifier
+                                        .background(Color(0xFF4CAF50).copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+
+                            // Tab Selector for grid sizes
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color.Black.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
+                                    .padding(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                listOf(3, 4, 9).forEach { size ->
+                                    val isSelected = selectedRecordGridSize == size
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .background(
+                                                if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                                RoundedCornerShape(8.dp)
+                                            )
+                                            .clickable { selectedRecordGridSize = size }
+                                            .padding(vertical = 6.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "${size}x${size} Grid",
+                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Grid of records for selected grid size
+                            val difficulties = listOf("EASY", "MEDIUM", "HARD", "EXPERT")
+                            val diffColors = listOf(Color(0xFF81C784), Color(0xFFFFD54F), Color(0xFFFF8A65), Color(0xFFE57373))
+
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                difficulties.forEachIndexed { index, diff ->
+                                    val timeKey = "section_fastest_time_${selectedRecordGridSize}_${diff}"
+                                    val scoreKey = "section_fast_score_${selectedRecordGridSize}_${diff}"
+
+                                    val recordTime = localPrefs.getLong(timeKey, 0L)
+                                    val recordScore = localPrefs.getFloat(scoreKey, 0f)
+
+                                    val timeDisplay = if (recordTime <= 0L) {
+                                        // Try reading from userProfile database values for 9x9 backward compatibility!
+                                        if (selectedRecordGridSize == 9) {
+                                            val legacyTime = when (diff) {
+                                                "EASY" -> userProfile?.bestTimeEasy ?: 0L
+                                                "MEDIUM" -> userProfile?.bestTimeMedium ?: 0L
+                                                "HARD" -> userProfile?.bestTimeHard ?: 0L
+                                                "EXPERT" -> userProfile?.bestTimeExpert ?: 0L
+                                                else -> 0L
+                                            }
+                                            if (legacyTime > 0L) "${legacyTime / 60}m ${legacyTime % 60}s" else "--:--"
+                                        } else {
+                                            "--:--"
+                                        }
+                                    } else {
+                                        "${recordTime / 60}m ${recordTime % 60}s"
+                                    }
+
+                                    val scoreDisplay = if (recordScore <= 0f) {
+                                        if (selectedRecordGridSize == 9 && recordTime <= 0L) {
+                                            val legacyTime = when (diff) {
+                                                "EASY" -> userProfile?.bestTimeEasy ?: 0L
+                                                "MEDIUM" -> userProfile?.bestTimeMedium ?: 0L
+                                                "HARD" -> userProfile?.bestTimeHard ?: 0L
+                                                "EXPERT" -> userProfile?.bestTimeExpert ?: 0L
+                                                else -> 0L
+                                            }
+                                            if (legacyTime > 0L) {
+                                                val legacySpeed = 81.0 / (legacyTime.coerceAtLeast(1) * 0.45)
+                                                String.format(java.util.Locale.getDefault(), "%.2f Hz", legacySpeed)
+                                            } else {
+                                                "0.00 Hz"
+                                            }
+                                        } else if (recordTime > 0L) {
+                                            val calcSpeed = (selectedRecordGridSize * selectedRecordGridSize).toDouble() / (recordTime.coerceAtLeast(1) * 0.45)
+                                            String.format(java.util.Locale.getDefault(), "%.2f Hz", calcSpeed)
+                                        } else {
+                                            "0.00 Hz"
+                                        }
+                                    } else {
+                                        String.format(java.util.Locale.getDefault(), "%.2f Hz", recordScore)
+                                    }
+
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(Color.Black.copy(alpha = 0.1f), RoundedCornerShape(10.dp))
+                                            .padding(10.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(6.dp)
+                                                    .background(diffColors[index], CircleShape)
+                                            )
+                                            Text(
+                                                text = diff,
+                                                color = diffColors[index],
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(horizontalAlignment = Alignment.End) {
+                                                Text(
+                                                    text = "⏱️ FASTEST TIME",
+                                                    fontSize = 8.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                Text(
+                                                    text = timeDisplay,
+                                                    fontSize = 12.sp,
+                                                    color = Color.White,
+                                                    fontWeight = FontWeight.ExtraBold
+                                                )
+                                            }
+
+                                            Column(horizontalAlignment = Alignment.End) {
+                                                Text(
+                                                    text = "⚡ FAST SCORE",
+                                                    fontSize = 8.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                Text(
+                                                    text = scoreDisplay,
+                                                    fontSize = 12.sp,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    fontWeight = FontWeight.ExtraBold
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 /**
                  * ------------------------------------------------------------------------------
                  * 🎁 COGNITIVE PRODUCTS & REDEMPTION SHOP GRID
@@ -1029,13 +1241,17 @@ fun RewardsDashboard(
 
                     val localFallbackText = "COMMENDATION: Demonstrated supreme algorithmic pattern recognition. Solved a ${hubGridSize}x${hubGridSize} (${hubDifficulty.uppercase()}) matrix in ${timeStr} with ${String.format("%.2f", hubSynapticSpeed)}Hz average throughput."
 
+                    val localPrefs = remember(context) { context.getSharedPreferences("msb_sudoku_prefs", android.content.Context.MODE_PRIVATE) }
+                    val customKey = remember(localPrefs) { localPrefs.getString("custom_gemini_api_key", "") ?: "" }
+                    val activeApiKey = if (customKey.isNotBlank()) customKey else com.example.BuildConfig.GEMINI_API_KEY
+
                     // Launches an audit event whenever name strings change
                     LaunchedEffect(certNameInput) {
                         isGeneratingEndorsement = true
                         endorsementStatus = "Querying live Cognitive AI audit..."
                         try {
                             val response = com.example.data.GeminiClient.getCertificateEndorsement(
-                                apiKey = com.example.BuildConfig.GEMINI_API_KEY,
+                                apiKey = activeApiKey,
                                 userName = certNameInput,
                                 gridSize = hubGridSize,
                                 difficulty = hubDifficulty,

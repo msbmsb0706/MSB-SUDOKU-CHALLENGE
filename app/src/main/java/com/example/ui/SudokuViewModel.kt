@@ -907,11 +907,41 @@ class SudokuViewModel(
                 var bestExp = profile.bestTimeExpert
 
                 val currentSecs = secondsElapsed.value
-                when (selectedDifficulty.value) {
-                    SudokuDifficulty.EASY -> if (bestEasy == 0L || currentSecs < bestEasy) bestEasy = currentSecs
-                    SudokuDifficulty.MEDIUM -> if (bestMed == 0L || currentSecs < bestMed) bestMed = currentSecs
-                    SudokuDifficulty.HARD -> if (bestHard == 0L || currentSecs < bestHard) bestHard = currentSecs
-                    SudokuDifficulty.EXPERT -> if (bestExp == 0L || currentSecs < bestExp) bestExp = currentSecs
+                val sizeVal = gridSize.value
+
+                // Only update the general 9x9 profile times if the game was played on a classic 9x9 board!
+                if (sizeVal == 9) {
+                    when (selectedDifficulty.value) {
+                        SudokuDifficulty.EASY -> if (bestEasy == 0L || currentSecs < bestEasy) bestEasy = currentSecs
+                        SudokuDifficulty.MEDIUM -> if (bestMed == 0L || currentSecs < bestMed) bestMed = currentSecs
+                        SudokuDifficulty.HARD -> if (bestHard == 0L || currentSecs < bestHard) bestHard = currentSecs
+                        SudokuDifficulty.EXPERT -> if (bestExp == 0L || currentSecs < bestExp) bestExp = currentSecs
+                    }
+                }
+
+                // Upgrade individual section records in SharedPreferences (for all sizes & difficulties)
+                val diffLabel = selectedDifficulty.value.name // EASY, MEDIUM, etc.
+                val currentSpeed = (sizeVal * sizeVal).toDouble() / (currentSecs.coerceAtLeast(1) * 0.45)
+
+                val sectionTimeKey = "section_fastest_time_${sizeVal}_${diffLabel}"
+                val sectionScoreKey = "section_fast_score_${sizeVal}_${diffLabel}"
+
+                val existingTime = prefs.getLong(sectionTimeKey, 0L)
+                val existingScore = prefs.getFloat(sectionScoreKey, 0f)
+
+                val prefsEditor = prefs.edit()
+                var sectionUpgraded = false
+
+                if (existingTime == 0L || currentSecs < existingTime) {
+                    prefsEditor.putLong(sectionTimeKey, currentSecs)
+                    sectionUpgraded = true
+                }
+                if (currentSpeed > existingScore) {
+                    prefsEditor.putFloat(sectionScoreKey, currentSpeed.toFloat())
+                    sectionUpgraded = true
+                }
+                if (sectionUpgraded) {
+                    prefsEditor.apply()
                 }
 
                 val updatedProfile = profile.copy(
@@ -2237,8 +2267,11 @@ class SudokuViewModel(
                 ============================================================
             """.trimIndent()
 
+            val customKey = prefs.getString("custom_gemini_api_key", "") ?: ""
+            val activeApiKey = if (customKey.isNotBlank()) customKey else BuildConfig.GEMINI_API_KEY
+
             val response = GeminiClient.getSudokuAnalysis(
-                apiKey = BuildConfig.GEMINI_API_KEY,
+                apiKey = activeApiKey,
                 statsPrompt = statsPrompt,
                 localFallbackReport = localReport
             )
