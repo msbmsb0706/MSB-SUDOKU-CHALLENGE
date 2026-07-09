@@ -9,6 +9,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
@@ -85,6 +86,7 @@ fun RewardsDashboard(
     onCancelClaim: () -> Unit,
     onRedeemPromoCode: ((String, (String) -> Unit) -> Unit)? = null,
     onNavigateToLeaderboard: () -> Unit,
+    lazyListState: LazyListState = androidx.compose.foundation.lazy.rememberLazyListState(),
     modifier: Modifier = Modifier
 ) {
     // Utility to copy verification codes, certificate links, and CV captions to the device clipboard
@@ -689,6 +691,7 @@ fun RewardsDashboard(
             val isSudokuMasterEarned = totalWinsCount >= 10 || (userProfile != null && userProfile.level >= 5) || hasCompletedExpertOrHardOrArena
 
             LazyColumn(
+                state = lazyListState,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),

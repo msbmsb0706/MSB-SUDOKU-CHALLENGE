@@ -12,6 +12,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -168,6 +171,13 @@ fun MainScaffold(viewModel: SudokuViewModel) {
     val isSoundEnabled by viewModel.isSoundEnabled.collectAsStateWithLifecycle()
     val showGuestLimitResult by viewModel.showGuestLimitReachedDialog.collectAsStateWithLifecycle()
 
+    val playScrollState = rememberScrollState()
+    val arenaLazyListState = rememberLazyListState()
+    val rewardsLazyListState = rememberLazyListState()
+    val profileScrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
+    var isScrollPanelExpanded by remember { mutableStateOf(false) }
+
     val haptic = LocalHapticFeedback.current
     val triggerMistakeVibration by viewModel.triggerMistakeVibration.collectAsStateWithLifecycle()
 
@@ -211,11 +221,215 @@ fun MainScaffold(viewModel: SudokuViewModel) {
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                when (activeTab) {
-                    0 -> PlayScreenTab(viewModel = viewModel)
-                    1 -> ArenaScreenTab(viewModel = viewModel)
-                    2 -> RewardsScreenTab(viewModel = viewModel)
-                    3 -> ProfileScreenTab(viewModel = viewModel)
+                AnimatedContent(
+                    targetState = activeTab,
+                    transitionSpec = {
+                        if (targetState > initialState) {
+                            (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
+                                slideOutHorizontally { width -> -width } + fadeOut()
+                            )
+                        } else {
+                            (slideInHorizontally { width -> -width } + fadeIn()).togetherWith(
+                                slideOutHorizontally { width -> width } + fadeOut()
+                            )
+                        }
+                    },
+                    label = "tab_navigation_animation",
+                    modifier = Modifier.fillMaxSize()
+                ) { targetTab ->
+                    when (targetTab) {
+                        0 -> PlayScreenTab(viewModel = viewModel, scrollState = playScrollState)
+                        1 -> ArenaScreenTab(viewModel = viewModel, lazyListState = arenaLazyListState)
+                        2 -> RewardsScreenTab(viewModel = viewModel, lazyListState = rewardsLazyListState)
+                        3 -> ProfileScreenTab(viewModel = viewModel, scrollState = profileScrollState)
+                    }
+                }
+
+                // Interactive Quick Scroll D-Pad Overlay
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(bottom = 16.dp, end = 16.dp)
+                ) {
+                    if (!isScrollPanelExpanded) {
+                        FloatingActionButton(
+                            onClick = { isScrollPanelExpanded = true },
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            shape = CircleShape,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Text(
+                                text = "🧭",
+                                fontSize = 20.sp
+                            )
+                        }
+                    } else {
+                        Card(
+                            shape = RoundedCornerShape(24.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                            ),
+                            modifier = Modifier
+                                .width(135.dp)
+                                .wrapContentHeight()
+                                .border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(24.dp)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(10.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "SCROLL D-PAD",
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                    IconButton(
+                                        onClick = { isScrollPanelExpanded = false },
+                                        modifier = Modifier.size(16.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Close",
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(10.dp)
+                                        )
+                                    }
+                                }
+
+                                // Up arrow button
+                                IconButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            when (activeTab) {
+                                                0 -> playScrollState.animateScrollTo(0)
+                                                1 -> arenaLazyListState.animateScrollToItem(0)
+                                                2 -> rewardsLazyListState.animateScrollToItem(0)
+                                                3 -> profileScrollState.animateScrollTo(0)
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape)
+                                ) {
+                                    Text(
+                                        text = "▲",
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Left arrow
+                                    IconButton(
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                if (activeTab > 0) {
+                                                    viewModel.activeTab.value = activeTab - 1
+                                                } else {
+                                                    viewModel.activeTab.value = 3
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape)
+                                    ) {
+                                        Text(
+                                            text = "◀",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+
+                                    // Center indicator
+                                    Box(
+                                        modifier = Modifier
+                                            .size(20.dp)
+                                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "${activeTab + 1}",
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+
+                                    // Right arrow
+                                    IconButton(
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                if (activeTab < 3) {
+                                                    viewModel.activeTab.value = activeTab + 1
+                                                } else {
+                                                    viewModel.activeTab.value = 0
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape)
+                                    ) {
+                                        Text(
+                                            text = "▶",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+
+                                // Down arrow button
+                                IconButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            when (activeTab) {
+                                                0 -> playScrollState.animateScrollTo(playScrollState.maxValue)
+                                                1 -> {
+                                                    if (arenaLazyListState.layoutInfo.totalItemsCount > 0) {
+                                                        arenaLazyListState.animateScrollToItem(arenaLazyListState.layoutInfo.totalItemsCount - 1)
+                                                    }
+                                                }
+                                                2 -> {
+                                                    if (rewardsLazyListState.layoutInfo.totalItemsCount > 0) {
+                                                        rewardsLazyListState.animateScrollToItem(rewardsLazyListState.layoutInfo.totalItemsCount - 1)
+                                                    }
+                                                }
+                                                3 -> profileScrollState.animateScrollTo(profileScrollState.maxValue)
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape)
+                                ) {
+                                    Text(
+                                        text = "▼",
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -505,7 +719,7 @@ enum class PlayTabScreen {
 }
 
 @Composable
-fun PlayScreenTab(viewModel: SudokuViewModel) {
+fun PlayScreenTab(viewModel: SudokuViewModel, scrollState: ScrollState = rememberScrollState()) {
     val grid by viewModel.grid.collectAsStateWithLifecycle()
     val selectedCell by viewModel.selectedCell.collectAsStateWithLifecycle()
     val isPencilMode by viewModel.isPencilMode.collectAsStateWithLifecycle()
@@ -620,7 +834,7 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(24.dp),
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -1860,7 +2074,7 @@ fun PlayScreenTab(viewModel: SudokuViewModel) {
 // --- 2. Live Arena competitive multiplayer Tab ---
 
 @Composable
-fun ArenaScreenTab(viewModel: SudokuViewModel) {
+fun ArenaScreenTab(viewModel: SudokuViewModel, lazyListState: LazyListState = rememberLazyListState()) {
     val selectedRegion by viewModel.regionFilter.collectAsStateWithLifecycle()
     val players by viewModel.selectedRegionLeaderboard.collectAsStateWithLifecycle()
     val searchState by viewModel.searchState.collectAsStateWithLifecycle()
@@ -1889,6 +2103,7 @@ fun ArenaScreenTab(viewModel: SudokuViewModel) {
     Box(modifier = Modifier.fillMaxSize()) {
         LeaderboardScreen(
             players = players,
+            lazyListState = lazyListState,
             selectedRegion = selectedRegion,
             onRegionSelected = { viewModel.regionFilter.value = it },
             searchState = searchState,
@@ -1967,7 +2182,7 @@ fun ArenaScreenTab(viewModel: SudokuViewModel) {
 // --- 3. Google Play Rewards Tab ---
 
 @Composable
-fun RewardsScreenTab(viewModel: SudokuViewModel) {
+fun RewardsScreenTab(viewModel: SudokuViewModel, lazyListState: LazyListState = rememberLazyListState()) {
     val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
     val transactions by viewModel.rewardTransactions.collectAsStateWithLifecycle()
     val claimingState by viewModel.claimingState.collectAsStateWithLifecycle()
@@ -1978,6 +2193,7 @@ fun RewardsScreenTab(viewModel: SudokuViewModel) {
     val isGuest = userProfile?.userId?.startsWith("guest_player_") == true
 
     RewardsDashboard(
+        lazyListState = lazyListState,
         playGoldPoints = pgp,
         gemsCount = gems,
         userProfile = userProfile,
@@ -2008,7 +2224,7 @@ fun RewardsScreenTab(viewModel: SudokuViewModel) {
 // --- 4. Profile / Studio credits Tab ---
 
 @Composable
-fun ProfileScreenTab(viewModel: SudokuViewModel) {
+fun ProfileScreenTab(viewModel: SudokuViewModel, scrollState: ScrollState = rememberScrollState()) {
     val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
     val gameHistory by viewModel.gameHistory.collectAsStateWithLifecycle()
     val aiAnalysis by viewModel.aiAnalysis.collectAsStateWithLifecycle()
@@ -2019,6 +2235,7 @@ fun ProfileScreenTab(viewModel: SudokuViewModel) {
     val isBiometricEnabled by viewModel.isBiometricEnabled.collectAsStateWithLifecycle()
 
     SettingsPanel(
+        scrollState = scrollState,
         userProfile = userProfile,
         gameHistory = gameHistory,
         aiAnalysis = aiAnalysis,

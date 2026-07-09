@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -71,6 +72,7 @@ fun LeaderboardScreen(
     onToggleDisableGridHelpers: () -> Unit = {},
     onToggleHideLastRow: () -> Unit = {},
     onClaimPvpCertificate: (Int, String, Long, Double, Double, Double) -> Unit = { _, _, _, _, _, _ -> },
+    lazyListState: LazyListState = androidx.compose.foundation.lazy.rememberLazyListState(),
     modifier: Modifier = Modifier
 ) {
     var selectedSubTab by remember { mutableStateOf(0) } // 0: Points Ladder, 1: Fastest Times (Firestore)
@@ -457,6 +459,7 @@ fun LeaderboardScreen(
 
             // 4. Rankings List
             LazyColumn(
+                state = lazyListState,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
@@ -715,6 +718,7 @@ fun LeaderboardScreen(
                 }
 
                 LazyColumn(
+                    state = lazyListState,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()

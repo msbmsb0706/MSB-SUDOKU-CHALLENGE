@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -51,6 +52,7 @@ fun SettingsPanel(
     onToggleMusic: () -> Unit = {},
     isBiometricEnabled: Boolean = false,
     onToggleBiometric: () -> Unit = {},
+    scrollState: ScrollState = androidx.compose.foundation.rememberScrollState(),
     modifier: Modifier = Modifier
 ) {
     var editUsername by remember { mutableStateOf("") }
@@ -94,8 +96,6 @@ fun SettingsPanel(
             editFacebookUrl = it.facebookUrl
         }
     }
-
-    val scrollState = rememberScrollState()
 
     Column(
         modifier = modifier
