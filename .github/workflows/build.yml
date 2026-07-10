@@ -25,23 +25,23 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Create release keystore automatically
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > "$KEYSTORE_PATH"
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      # ✅ FORCE INSTALL GRADLE: This ignores your project's corrupt wrapper entirely
-      - name: Install and Run Gradle
+      - name: Decode Existing Keystore File
+        # Using printf instead of echo to prevent base64 input errors
+        run: printf "%s" "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > "$KEYSTORE_PATH"
+
+      - name: Build with Gradle
         run: |
-          wget https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          # Download Gradle 8.7 directly to bypass corrupted local wrapper
+          wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip
           unzip -q gradle-8.7-bin.zip
-          export GRADLE_HOME=$PWD/gradle-8.7
-          export PATH=$GRADLE_HOME/bin:$PATH
           
-          # Inject API Key
-          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > local.properties
-          
-          # Build
-          gradle assembleRelease bundleRelease --stacktrace
+          # Run the build
+          ./gradle-8.7/bin/gradle assembleRelease bundleRelease --no-configuration-cache --stacktrace
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: Sign Release APK
         run: |
