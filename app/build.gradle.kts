@@ -8,11 +8,11 @@
 
 android {
   namespace = "com.msbcreativestudios.sudokuchallenge"
-  compileSdk = 34
+  compileSdk = 36 // Updated to 36 to satisfy newer AndroidX dependency metadata requirements
 
   defaultConfig {
     applicationId = "com.msbcreativestudios.sudokuchallenge"
-    minSdk = 28
+    minSdk = 28 // Maintains full support for Android 9 (Pie) devices
     targetSdk = 34
     versionCode = 1
     versionName = "1.0"
