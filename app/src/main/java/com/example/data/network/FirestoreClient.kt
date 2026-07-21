@@ -1,7 +1,7 @@
-package com.example.data.network
+package com.msbcreativestudios.sudokuchallenge.data.network
 
 import android.util.Log
-import com.example.BuildConfig
+import com.msbcreativestudios.sudokuchallenge.BuildConfig
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -314,3 +314,4 @@ object FirestoreClient {
         )
     }
 }
+
