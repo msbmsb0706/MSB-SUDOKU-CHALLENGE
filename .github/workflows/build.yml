@@ -33,10 +33,10 @@ jobs:
 
       - name: Build with Gradle 9.3.1
         run: |
+          rm -rf gradle-9.3.1*
           wget -q https://services.gradle.org/distributions/gradle-9.3.1-bin.zip
           unzip -q gradle-9.3.1-bin.zip
           
-          # Forces Gradle 9.3.1 and headless mode to support AI Studio's AGP 9.1.1 structure cleanly
           ./gradle-9.3.1/bin/gradle assembleRelease bundleRelease -Djava.awt.headless=true --no-configuration-cache --stacktrace
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
