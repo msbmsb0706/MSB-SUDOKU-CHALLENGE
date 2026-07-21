@@ -135,7 +135,6 @@ object FirestoreClient {
 
     private val api: FirestoreApi = retrofit.create(FirestoreApi::class.java)
 
-    // Check if the current configuration contains placeholder keys
     private fun isUsingPlaceholder(): Boolean {
         val proj = BuildConfig.FIREBASE_PROJECT_ID
         val apiKey = BuildConfig.FIREBASE_API_KEY
@@ -145,9 +144,6 @@ object FirestoreClient {
                apiKey.contains("your_", ignoreCase = true)
     }
 
-    /**
-     * Submit a fastest completion record to Firebase Firestore.
-     */
     suspend fun submitCompletionTime(
         username: String,
         timeSeconds: Long,
@@ -174,7 +170,6 @@ object FirestoreClient {
         }
 
         if (isUsingPlaceholder()) {
-            Log.d(TAG, "submitCompletionTime: Bypassed remote API due to placeholder credentials. Saved locally: $username ($timeSeconds s)")
             return@withContext true
         }
 
@@ -198,28 +193,21 @@ object FirestoreClient {
                 apiKey = apiKey,
                 request = request
             )
-            Log.d(TAG, "submitCompletionTime remote request succeeded: $username - $timeSeconds seconds.")
         } catch (e: Exception) {
-            Log.e(TAG, "submitCompletionTime remote request failed: ${e.message}. Retained local copy.", e)
+            Log.e(TAG, "submitCompletionTime remote request failed: ${e.message}", e)
         }
 
         return@withContext true
     }
 
-    /**
-     * Queries Firestore for the top 10 fastest times globally.
-     * Incorporates automatic fallback in case of missing keys or network failure to guarantee zero crashes.
-     */
     suspend fun getGlobalTop10Fastest(): List<GlobalFastestPlayer> = withContext(Dispatchers.IO) {
         val eliteFallback = getEliteFallbackLeaderboard()
         
         if (isUsingPlaceholder()) {
-            Log.d(TAG, "getGlobalTop10Fastest: Placeholder config. Returning local combined records.")
-            val combined = (eliteFallback + localRecords)
+            return@withContext (eliteFallback + localRecords)
                 .sortedBy { it.timeElapsedSeconds }
                 .distinctBy { it.username to it.difficulty }
                 .take(10)
-            return@withContext combined
         }
 
         try {
@@ -272,32 +260,24 @@ object FirestoreClient {
                 }
             }
 
-            // Combine parsed list with local records
             val finalCombined = (parsedList + localRecords)
                 .sortedBy { it.timeElapsedSeconds }
                 .distinctBy { it.username to it.difficulty }
                 .take(10)
 
             if (finalCombined.isNotEmpty()) {
-                Log.d(TAG, "getGlobalTop10Fastest: Success drawing ${finalCombined.size} merged server-local records.")
                 return@withContext finalCombined
             }
         } catch (e: Exception) {
-            Log.e(TAG, "getGlobalTop10Fastest: Remote API invocation error: ${e.message}. Resorting to fallback database values.", e)
+            Log.e(TAG, "getGlobalTop10Fastest error: ${e.message}", e)
         }
 
-        // Return local fallback on any remote issue
-        val combined = (eliteFallback + localRecords)
+        return@withContext (eliteFallback + localRecords)
             .sortedBy { it.timeElapsedSeconds }
             .distinctBy { it.username to it.difficulty }
             .take(10)
-        return@withContext combined
     }
 
-    /**
-     * Provides an outstanding, pristine list of global legendary solvers to display in case network is offline
-     * or the developer hasn't configured a custom Firebase account yet.
-     */
     fun getEliteFallbackLeaderboard(): List<GlobalFastestPlayer> {
         val rootTime = System.currentTimeMillis()
         return listOf(
