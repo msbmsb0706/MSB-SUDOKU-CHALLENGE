@@ -31,13 +31,13 @@ jobs:
       - name: Decode Existing Keystore File
         run: printf "%s" "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > "$KEYSTORE_PATH"
 
-      # ✅ UPDATED TO GRADLE 9.3.1 TO MATCH AGP 9.1.1 REQUIREMENTS
       - name: Build with Gradle 9.3.1
         run: |
           wget -q https://services.gradle.org/distributions/gradle-9.3.1-bin.zip
           unzip -q gradle-9.3.1-bin.zip
           
-          ./gradle-9.3.1/bin/gradle assembleRelease bundleRelease --no-configuration-cache --stacktrace
+          # Runs Gradle with headless mode enabled to prevent KSP/IntelliJ GUI crashes on the cloud runner
+          ./gradle-9.3.1/bin/gradle assembleRelease bundleRelease -Djava.awt.headless=true --no-configuration-cache --stacktrace
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
