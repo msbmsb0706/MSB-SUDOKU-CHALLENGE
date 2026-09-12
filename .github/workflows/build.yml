@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - 'arena/**' # TEMP: lets the Arena working branch verify this workflow before merging
   workflow_dispatch:
 
 jobs:
