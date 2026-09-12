@@ -51,6 +51,26 @@ jobs:
       - name: Decode keystore
         run: printf "%s" "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > "$KEYSTORE_PATH"
 
+      - name: Inspect decoded keystore
+        continue-on-error: true
+        run: |
+          {
+            echo "===== KEYSTORE INSPECTION ====="
+            echo "secret length (chars): ${#RAW}"
+            ls -l "$KEYSTORE_PATH" || true
+            printf 'first 16 bytes: '; head -c 16 "$KEYSTORE_PATH" | xxd -p || true
+            sha256sum "$KEYSTORE_PATH" || true
+            file "$KEYSTORE_PATH" || true
+            echo "----- keytool -list -storepass android123 -----"
+            keytool -list -keystore "$KEYSTORE_PATH" -storepass android123 2>&1 | tail -5 || true
+            echo "----- keytool -list -storepass android123 (aliases) -----"
+            keytool -list -v -keystore "$KEYSTORE_PATH" -storepass android123 2>&1 | grep -i "alias\|entry type\|valid from" | head -10 || true
+            echo "===== END INSPECTION ====="
+          } > "$RUNNER_TEMP/inspect.txt" 2>&1
+          cat "$RUNNER_TEMP/inspect.txt"
+        env:
+          RAW: ${{ secrets.KEYSTORE_BASE64 }}
+
       - name: Build with Gradle 9.3.1 (log captured)
         continue-on-error: true
         run: |
@@ -68,11 +88,18 @@ jobs:
           tail -c 60000 "$LOG" > "$RUNNER_TEMP/tail.log"
 
           {
+            echo "## Keystore inspection"
+            echo '```'
+            cat "$RUNNER_TEMP/inspect.txt" 2>/dev/null
+            echo '```'
             echo "## Gradle log tail ($(wc -c < "$LOG") bytes total)"
             echo '```'
             cat "$RUNNER_TEMP/tail.log"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+          cat "$RUNNER_TEMP/inspect.txt" "$RUNNER_TEMP/tail.log" > "$RUNNER_TEMP/publish.log" 2>/dev/null || true
+          tail -c 60000 "$RUNNER_TEMP/publish.log" > "$RUNNER_TEMP/tail.log"
 
           python3 - > "$RUNNER_TEMP/check.json" <<'PY'
           import json, os, sys
