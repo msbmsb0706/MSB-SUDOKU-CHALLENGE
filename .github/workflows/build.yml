@@ -10,9 +10,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      STORE_PASSWORD: android123
-      KEY_PASSWORD: android123
-      KEY_ALIAS: upload
+      # Passwords/alias can be overridden with repository secrets; the defaults
+      # match the keystore that the "Generate and Export Keystore" workflow produced.
+      STORE_PASSWORD: ${{ secrets.STORE_PASSWORD || 'android123' }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'android123' }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'upload' }}
       KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
 
     steps:
@@ -28,17 +30,96 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Decode Existing Keystore File
-        run: printf "%s" "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > "$KEYSTORE_PATH"
+      - name: Restore signing keystore
+        run: |
+          mkdir -p "$RUNNER_TEMP"
+          printf "%s" "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > "$KEYSTORE_PATH" 2>/dev/null || true
+          ls -l "$KEYSTORE_PATH" 2> /dev/null || echo "no keystore decoded"
+
+          # The upload keystore is a PKCS#12 file, so the same passphrase protects
+          # the store and the key. Accept whichever configured password opens it
+          # instead of assuming one of them, and read the real alias from the file.
+          KEYSTORE_PW=""
+          if [ -s "$KEYSTORE_PATH" ]; then
+            for candidate in "$STORE_PASSWORD" "$KEY_PASSWORD"; do
+              [ -n "$candidate" ] || continue
+              if keytool -list -keystore "$KEYSTORE_PATH" -storepass "$candidate" > /dev/null 2>&1; then
+                KEYSTORE_PW="$candidate"
+                break
+              fi
+            done
+          fi
+
+          if [ -n "$KEYSTORE_PW" ]; then
+            KEYSTORE_ALIAS=$(keytool -list -v -keystore "$KEYSTORE_PATH" -storepass "$KEYSTORE_PW" 2> /dev/null | sed -n 's/^Alias name: //p' | head -n 1)
+            KEYSTORE_ALIAS="${KEYSTORE_ALIAS:-$KEY_ALIAS}"
+            {
+              echo "STORE_PASSWORD=$KEYSTORE_PW"
+              echo "KEY_PASSWORD=$KEYSTORE_PW"
+              echo "KEY_ALIAS=$KEYSTORE_ALIAS"
+              echo "KEYSTORE_SOURCE=secret"
+            } >> "$GITHUB_ENV"
+            echo "Using the upload keystore stored in the KEYSTORE_BASE64 secret (alias: $KEYSTORE_ALIAS)."
+            exit 0
+          fi
+
+          # The secret is missing, unreadable, or uses an unknown password. Sign
+          # with a generated key instead of failing the whole pipeline, and
+          # publish the new keystore so the secret can be replaced.
+          if [ -s "$KEYSTORE_PATH" ]; then
+            echo "::warning title=Keystore password mismatch::The KEYSTORE_BASE64 secret cannot be opened with the configured passwords. Signing this build with a newly generated upload key."
+          else
+            echo "::warning title=Keystore missing::The KEYSTORE_BASE64 secret is empty or is not valid base64. Signing this build with a newly generated upload key."
+          fi
+
+          RUN_PASSWORD="${STORE_PASSWORD:-android123}"
+          rm -f "$KEYSTORE_PATH"
+          keytool -genkeypair -v \
+            -keystore "$KEYSTORE_PATH" \
+            -storetype PKCS12 \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -alias "$KEY_ALIAS" \
+            -storepass "$RUN_PASSWORD" -keypass "$RUN_PASSWORD" \
+            -dname "CN=MSB Creative Studios, OU=MSB, O=MSB, L=Chennai, S=Tamil Nadu, C=IN"
+          base64 -w 0 "$KEYSTORE_PATH" > "$RUNNER_TEMP/new-keystore.b64"
+          {
+            echo "STORE_PASSWORD=$RUN_PASSWORD"
+            echo "KEY_PASSWORD=$RUN_PASSWORD"
+            echo "KEYSTORE_SOURCE=generated"
+          } >> "$GITHUB_ENV"
+
+      - name: Publish generated keystore as artifact
+        if: env.KEYSTORE_SOURCE == 'generated'
+        uses: actions/upload-artifact@v4
+        with:
+          name: GENERATED-UPLOAD-KEYSTORE
+          path: |
+            my-upload-key.jks
+            ${{ runner.temp }}/new-keystore.b64
+
+      - name: Warn about generated keystore
+        if: env.KEYSTORE_SOURCE == 'generated'
+        run: |
+          {
+            echo "### :warning: This build was signed with a temporary upload key"
+            echo ""
+            echo "The \`KEYSTORE_BASE64\` repository secret could not be opened with the configured"
+            echo "\`STORE_PASSWORD\` / \`KEY_PASSWORD\` values, so a new upload key was generated for this"
+            echo "run and is attached to the run as the \`GENERATED-UPLOAD-KEYSTORE\` artifact."
+            echo ""
+            echo "To sign future builds with your own key, add its base64 to the \`KEYSTORE_BASE64\` secret"
+            echo "(\`base64 -w 0 my-upload-key.jks\`) together with the matching \`STORE_PASSWORD\`."
+            echo "If Play App Signing is enabled, this key can also be uploaded as a replacement upload key."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build with Gradle 9.3.1
         run: |
-          rm -rf gradle-9.3.1*
+          set -o pipefail
           wget -q https://services.gradle.org/distributions/gradle-9.3.1-bin.zip
-          unzip -q gradle-9.3.1-bin.zip
-          
+          unzip -q -o gradle-9.3.1-bin.zip
+
           # JVM flag MUST be before the gradle executable path
-          ./gradle-9.3.1/bin/gradle -Djava.awt.headless=true -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8 -Djava.awt.headless=true" assembleRelease bundleRelease --no-configuration-cache --stacktrace
+          ./gradle-9.3.1/bin/gradle -Djava.awt.headless=true -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8 -Djava.awt.headless=true" assembleRelease bundleRelease --no-configuration-cache --stacktrace 2>&1 | tee "$RUNNER_TEMP/build.log"
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
@@ -46,9 +127,9 @@ jobs:
         run: |
           BUILD_TOOLS_VERSION=$(ls /usr/local/lib/android/sdk/build-tools/ | sort -r | head -n1)
           APK_SIGNER="/usr/local/lib/android/sdk/build-tools/$BUILD_TOOLS_VERSION/apksigner"
-          
-          UNSIGNED_APK=$(find app/build/outputs/apk/release/ -name "*.apk" | head -n 1)
-          
+
+          UNSIGNED_APK=$(find app/build/outputs/apk/release/ -name "*.apk" ! -name "*-Signed.apk" | head -n 1)
+
           $APK_SIGNER sign --ks "$KEYSTORE_PATH" \
             --ks-pass pass:"$STORE_PASSWORD" \
             --key-pass pass:"$KEY_PASSWORD" \
@@ -65,3 +146,13 @@ jobs:
           path: |
             app/build/outputs/apk/release/MSB-Sudoku-Challenge-Signed.apk
             app/build/outputs/bundle/release/*.aab
+
+      - name: Report failure summary
+        if: failure()
+        run: |
+          {
+            echo "### Gradle failure"
+            echo '```'
+            grep -B 2 -A 15 "What went wrong" "$RUNNER_TEMP/build.log" 2>/dev/null | head -60 || tail -40 "$RUNNER_TEMP/build.log"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
